@@ -43,26 +43,6 @@ namespace DotnesktRemastered
                     Log.Error("Game is not supported :(.");
                     return;
             }
-
-            /*
-            //gfx_map
-            Cordycep.EnumerableAssetPool(50, (asset) =>
-            {
-                MW6GfxWorld gfxWorld = Cordycep.ReadMemory<MW6GfxWorld>(asset.Header);
-                string baseName = Cordycep.ReadString(gfxWorld.baseName);
-                MW6GfxWorldSurfaces gfxWorldSurfaces = gfxWorld.surfaces;
-                Console.WriteLine(baseName);
-
-                Log.Information($"Surface count: {gfxWorldSurfaces.count}");
-                Log.Information($"ugb surface count: {gfxWorldSurfaces.surfDataCount}");
-                Log.Information($"material count: {gfxWorldSurfaces.materialCount}");
-
-                for (int i = 0; i < gfxWorldSurfaces.count; i++)
-                {
-                    MW6GfxSurface gfxSurface = Cordycep.ReadMemory<MW6GfxSurface>(gfxWorldSurfaces.surfaces + i * sizeof(MW6GfxSurface));
-                }
-            });
-            */
         }
     }
 }

@@ -5,7 +5,7 @@ using System.Runtime.InteropServices;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace DotnesktRemastered
+namespace DotnesktRemastered.Structures
 {
     [StructLayout(LayoutKind.Explicit, Size = 36)]
     public unsafe struct BO6GfxSurface

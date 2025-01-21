@@ -5,7 +5,7 @@ using System.Runtime.InteropServices;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace DotnesktRemastered
+namespace DotnesktRemastered.Structures
 {
     [StructLayout(LayoutKind.Explicit, Size = 40)]
     public unsafe struct MW6GfxSurface
@@ -23,7 +23,7 @@ namespace DotnesktRemastered
         [FieldOffset(20)]
         public ushort vertexCount;
         [FieldOffset(22)]
-        public ushort indexCount;
+        public ushort triCount;
         [FieldOffset(24)]
         public uint unk6;
         [FieldOffset(28)]
@@ -50,17 +50,17 @@ namespace DotnesktRemastered
         [FieldOffset(32)]
         public uint offsetUnk0;
         [FieldOffset(36)]
-        public uint xyzOffset;
-        [FieldOffset(40)]
-        public uint tangentFrameOffset;
-        [FieldOffset(44)]
-        public uint lmapOffset;
-        [FieldOffset(48)]
-        public uint colorOffset;
-        [FieldOffset(52)]
-        public uint texCoordOffset;
-        [FieldOffset(56)]
         public uint offsetUnk1;
+        [FieldOffset(40)]
+        public uint xyzOffset;
+        [FieldOffset(44)]
+        public uint tangentFrameOffset;
+        [FieldOffset(48)]
+        public uint lmapOffset;
+        [FieldOffset(52)]
+        public uint colorOffset;
+        [FieldOffset(56)]
+        public uint texCoordOffset;
         [FieldOffset(60)]
         public uint offsetUnk2;
         [FieldOffset(64)]
