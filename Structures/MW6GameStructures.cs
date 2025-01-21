@@ -15,7 +15,7 @@ namespace DotnesktRemastered.Structures
         [FieldOffset(4)]
         public uint baseIndex;
         [FieldOffset(8)]
-        public uint unkOffset1; //points to unk2Ptr
+        public uint unkOffset1; //points to unk2Ptr in drawverts
         [FieldOffset(12)]
         public uint ugbSurfDataIndex;
         [FieldOffset(16)]
@@ -25,13 +25,13 @@ namespace DotnesktRemastered.Structures
         [FieldOffset(24)]
         public ushort vertexCount;
         [FieldOffset(26)]
-        public ushort triCount;
+        public ushort unk3;
         [FieldOffset(28)]
-        public uint unk7;
+        public uint unk4;
         [FieldOffset(32)]
-        public uint unk8;
+        public uint unk5;
         [FieldOffset(36)]
-        public uint unkOffset2; //points to unk3Ptr
+        public uint unkOffset2; //points to unk3Ptr in drawverts
     }
 
     [StructLayout(LayoutKind.Explicit, Size = 128)]
@@ -50,7 +50,7 @@ namespace DotnesktRemastered.Structures
         [FieldOffset(32)]
         public uint vertexCount;
         [FieldOffset(36)]
-        public uint unk2;
+        public uint unk2; // no idea ? 
         [FieldOffset(40)]
         public uint xyzOffset;
         [FieldOffset(44)]
@@ -64,7 +64,7 @@ namespace DotnesktRemastered.Structures
         [FieldOffset(60)]
         public uint unk3;
         [FieldOffset(64)]
-        public uint accumulatedUnk2; //? this is sum of unk2
+        public uint accumulatedUnk2; //? this is sum of previous unk2
         [FieldOffset(68)]
         public fixed uint normalTransformOffset[7];
         [FieldOffset(96)]
@@ -120,9 +120,9 @@ namespace DotnesktRemastered.Structures
         [FieldOffset(24)]
         public nint indices;
         [FieldOffset(32)]
-        public nint unk2Ptr;
+        public nint unk2Ptr; // 40 * unk2Size, different from vanguard 28 * 
         [FieldOffset(40)]
-        public nint unk3Ptr;
+        public nint unk3Ptr; // no idea
     }
 
     [StructLayout(LayoutKind.Explicit, Size = 376)]
@@ -131,7 +131,7 @@ namespace DotnesktRemastered.Structures
         [FieldOffset(0)]
         public ulong Hash;
         [FieldOffset(8)]
-        public nint unkPtr0; // 16 bytes of yap
+        public nint unkPtr0; // 16 bytes of yap, seems empty
         [FieldOffset(16)]
         public ulong transientZoneIndex;
         [FieldOffset(24)]

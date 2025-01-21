@@ -108,29 +108,21 @@ namespace DotnesktRemastered.Games
                         texCoordPtr += 8;
                     }
                 }
-
                 //TODO FACES
-                CastArrayProperty<ushort> faceIndices = mesh.AddArray<ushort>("f", new(0));
+                /*
+                CastArrayProperty<ushort> faceIndices = mesh.AddArray<ushort>("f", new(gfxSurface.triCount * 3));
                 nint indiciesPtr = (nint)(zone.drawVerts.indices + gfxSurface.baseIndex * 2);
 
+                for (int j = 0; j < gfxSurface.triCount * 3; j++)
+                {
+                    ushort index = Cordycep.ReadMemory<ushort>(indiciesPtr);
+                    faceIndices.Add(index);
+                    indiciesPtr += 2;
+                }
+                */
                 meshes[i] = mesh;
-
-                Log.Information("===================================");
-                Log.Information("Mesh {0} vertexCount: {1}", i, ugbSurfData.vertexCount);
-                Log.Information("Mesh {0} layerCount: {1}", i, ugbSurfData.layerCount);
-                Log.Information("Mesh {0} unk1: {1}", i, ugbSurfData.unk1);
-                Log.Information("Mesh {0} xyzOffset: {1}", i, ugbSurfData.xyzOffset);
-                Log.Information("Mesh {0} tangentFrameOffset: {1}", i, ugbSurfData.tangentFrameOffset);
-                Log.Information("Mesh {0} lmapOffset: {1}", i, ugbSurfData.lmapOffset);
-                Log.Information("Mesh {0} colorOffset: {1}", i, ugbSurfData.colorOffset);
-                Log.Information("Mesh {0} texCoordOffset: {1}", i, ugbSurfData.texCoordOffset);
-                Log.Information("Mesh {0} unk2: {1}", i, ugbSurfData.unk2);
-                Log.Information("Mesh {0} unk3: {1}", i, ugbSurfData.unk3);
-                Log.Information("Mesh {0} offsetUnk3: {1}", i, ugbSurfData.vertexOffset);
-                Log.Information("Mesh {0} baseIndex: {1}", i, gfxSurface.baseIndex);
-                Log.Information("Mesh {0} triCount: {1}", i, gfxSurface.triCount);
-                Log.Information("Mesh {0} raw surface data: {1}", i, Cordycep.ReadRawMemory(gfxWorldSurfaces.surfaces + i * sizeof(MW6GfxSurface), sizeof(MW6GfxSurface)));
-                Log.Information("Mesh {0} raw ugbSurfData: {1}", i, Cordycep.ReadRawMemory(gfxWorldSurfaces.ugbSurfData + (nint)(gfxSurface.ugbSurfDataIndex * sizeof(MW6GfxUgbSurfData)), sizeof(MW6GfxUgbSurfData)));
+                //Log.Information("Mesh {0} raw surface data: {1}", i, Cordycep.ReadRawMemory(gfxWorldSurfaces.surfaces + i * sizeof(MW6GfxSurface), sizeof(MW6GfxSurface)));
+                //Log.Information("Mesh {0} raw ugbSurfData: {1}", i, Cordycep.ReadRawMemory(gfxWorldSurfaces.ugbSurfData + (nint)(gfxSurface.ugbSurfDataIndex * sizeof(MW6GfxUgbSurfData)), sizeof(MW6GfxUgbSurfData)));
 
             }
             //Write to file
