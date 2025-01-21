@@ -21,11 +21,11 @@ namespace DotnesktRemastered.Structures
         [FieldOffset(16)]
         public uint materialIndex;
         [FieldOffset(20)]
-        public ushort vertexCount;
-        [FieldOffset(22)]
-        public ushort triCount;
+        public uint unk0;
         [FieldOffset(24)]
-        public uint unk6;
+        public ushort vertexCount;
+        [FieldOffset(26)]
+        public ushort triCount;
         [FieldOffset(28)]
         public uint unk7;
         [FieldOffset(32)]
@@ -42,15 +42,15 @@ namespace DotnesktRemastered.Structures
         [FieldOffset(16)]
         public uint transientZoneIndex;
         [FieldOffset(20)]
-        public uint unk0;
+        public uint unk0; //0xFFFF
         [FieldOffset(24)]
-        public uint unk1;
+        public uint unk1; //either 0 or 510
         [FieldOffset(28)]
         public uint layerCount;
         [FieldOffset(32)]
-        public uint offsetUnk0;
+        public uint vertexCount;
         [FieldOffset(36)]
-        public uint offsetUnk1;
+        public uint unk2;
         [FieldOffset(40)]
         public uint xyzOffset;
         [FieldOffset(44)]
@@ -62,9 +62,9 @@ namespace DotnesktRemastered.Structures
         [FieldOffset(56)]
         public uint texCoordOffset;
         [FieldOffset(60)]
-        public uint offsetUnk2;
+        public uint unk3;
         [FieldOffset(64)]
-        public uint offsetUnk3;
+        public uint accumulatedUnk2; //? this is sum of unk2
         [FieldOffset(68)]
         public fixed uint normalTransformOffset[7];
         [FieldOffset(96)]

@@ -46,6 +46,7 @@ namespace DotnesktRemastered.Games
                 surfaces[i] = Cordycep.ReadMemory<MW6GfxSurface>(gfxWorldSurfaces.surfaces + i * sizeof(MW6GfxSurface));
             }
 
+
             MeshNode[] meshes = new MeshNode[gfxWorldSurfaces.count];
             for (int i = 0; i < gfxWorldSurfaces.count; i++)
             {
@@ -56,14 +57,11 @@ namespace DotnesktRemastered.Games
                 MW6GfxWorldDrawOffset worldDrawOffset = ugbSurfData.worldDrawOffset;
 
                 MW6GfxWorldTransientZone zone = transientZone[ugbSurfData.transientZoneIndex];
-                Log.Information("Processing mesh {i}, vertex count: {vertexCount}, tri count: {triCount}", i, gfxSurface.vertexCount, gfxSurface.triCount);
+
+                ushort vertexCount = (ushort)gfxSurface.vertexCount;
 
                 MeshNode mesh = new MeshNode();
                 mesh.AddValue("ul", ugbSurfData.layerCount);
-
-                CastArrayProperty<Vector3> positions = mesh.AddArray<Vector3>("vp", new(gfxSurface.vertexCount));
-                CastArrayProperty<Vector3> normals = mesh.AddArray<Vector3>("vn", new(gfxSurface.vertexCount));
-                CastArrayProperty<ushort> faceIndices = mesh.AddArray<ushort>("f", new(gfxSurface.triCount * 3));
 
                 for (int layerIdx = 0; layerIdx < ugbSurfData.layerCount; layerIdx++)
                 {
@@ -76,10 +74,12 @@ namespace DotnesktRemastered.Games
                 nint tangentFramePtr = zone.drawVerts.posData + (nint)ugbSurfData.tangentFrameOffset;
                 nint texCoordPtr = zone.drawVerts.posData + (nint)ugbSurfData.texCoordOffset;
 
-                //test tangent frame
+                CastArrayProperty<Vector3> positions = mesh.AddArray<Vector3>("vp", new(vertexCount));
+                CastArrayProperty<Vector3> normals = mesh.AddArray<Vector3>("vn", new(vertexCount));
+
                 for (int j = 0; j < gfxSurface.vertexCount; j++)
                 {
-                    uint packedPosition = Cordycep.ReadMemory<uint>(xyzPtr);
+                    ulong packedPosition = Cordycep.ReadMemory<ulong>(xyzPtr);
                     Vector3 position = new Vector3(
                         (float)((packedPosition >> 0) & 0x1FFFFF),
                         (float)((packedPosition >> 21) & 0x1FFFFF),
@@ -89,7 +89,7 @@ namespace DotnesktRemastered.Games
                     position += new Vector3(worldDrawOffset.x, worldDrawOffset.y, worldDrawOffset.z);
 
                     positions.Add(position);
-                    xyzPtr += 4;
+                    xyzPtr += 8;
 
                     uint packedTangentFrame = Cordycep.ReadMemory<uint>(tangentFramePtr);
                     Vector3 normal = Utils.UnpackCoDQTangent(packedTangentFrame);
@@ -109,24 +109,30 @@ namespace DotnesktRemastered.Games
                     }
                 }
 
+                //TODO FACES
+                CastArrayProperty<ushort> faceIndices = mesh.AddArray<ushort>("f", new(0));
                 nint indiciesPtr = (nint)(zone.drawVerts.indices + gfxSurface.baseIndex * 2);
 
-                for (int j = 0; j < gfxSurface.triCount; j++)
-                {
-                    ushort index1 = Cordycep.ReadMemory<ushort>(indiciesPtr);
-                    faceIndices.Add(index1);
-                    indiciesPtr += 2;
-                    ushort index2 = Cordycep.ReadMemory<ushort>(indiciesPtr);
-                    faceIndices.Add(index2);
-                    indiciesPtr += 2;
-                    ushort index3 = Cordycep.ReadMemory<ushort>(indiciesPtr);
-                    faceIndices.Add(index3);
-                    indiciesPtr += 2;
-                }
-
                 meshes[i] = mesh;
-            }
 
+                Log.Information("===================================");
+                Log.Information("Mesh {0} vertexCount: {1}", i, ugbSurfData.vertexCount);
+                Log.Information("Mesh {0} layerCount: {1}", i, ugbSurfData.layerCount);
+                Log.Information("Mesh {0} unk1: {1}", i, ugbSurfData.unk1);
+                Log.Information("Mesh {0} xyzOffset: {1}", i, ugbSurfData.xyzOffset);
+                Log.Information("Mesh {0} tangentFrameOffset: {1}", i, ugbSurfData.tangentFrameOffset);
+                Log.Information("Mesh {0} lmapOffset: {1}", i, ugbSurfData.lmapOffset);
+                Log.Information("Mesh {0} colorOffset: {1}", i, ugbSurfData.colorOffset);
+                Log.Information("Mesh {0} texCoordOffset: {1}", i, ugbSurfData.texCoordOffset);
+                Log.Information("Mesh {0} unk2: {1}", i, ugbSurfData.unk2);
+                Log.Information("Mesh {0} unk3: {1}", i, ugbSurfData.unk3);
+                Log.Information("Mesh {0} offsetUnk3: {1}", i, ugbSurfData.vertexOffset);
+                Log.Information("Mesh {0} baseIndex: {1}", i, gfxSurface.baseIndex);
+                Log.Information("Mesh {0} triCount: {1}", i, gfxSurface.triCount);
+                Log.Information("Mesh {0} raw surface data: {1}", i, Cordycep.ReadRawMemory(gfxWorldSurfaces.surfaces + i * sizeof(MW6GfxSurface), sizeof(MW6GfxSurface)));
+                Log.Information("Mesh {0} raw ugbSurfData: {1}", i, Cordycep.ReadRawMemory(gfxWorldSurfaces.ugbSurfData + (nint)(gfxSurface.ugbSurfDataIndex * sizeof(MW6GfxUgbSurfData)), sizeof(MW6GfxUgbSurfData)));
+
+            }
             //Write to file
 
             ModelNode model = new ModelNode();
