@@ -1,0 +1,2 @@
+﻿ReadProcessMemory
+WriteProcessMemory
