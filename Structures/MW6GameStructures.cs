@@ -15,7 +15,7 @@ namespace DotnesktRemastered.Structures
         [FieldOffset(4)]
         public uint baseIndex;
         [FieldOffset(8)]
-        public uint tableOffset; //points to unk2Ptr in drawverts
+        public uint tableOffset;
         [FieldOffset(12)]
         public uint ugbSurfDataIndex;
         [FieldOffset(16)]
@@ -33,7 +33,7 @@ namespace DotnesktRemastered.Structures
         [FieldOffset(32)]
         public uint unk5; //FFFF
         [FieldOffset(36)]
-        public uint packedIndicesOffset; //points to unk3Ptr in drawverts
+        public uint packedIndicesOffset;
     }
 
     [StructLayout(LayoutKind.Explicit, Size = 128)]
@@ -122,9 +122,9 @@ namespace DotnesktRemastered.Structures
         [FieldOffset(24)]
         public nint indices;
         [FieldOffset(32)]
-        public nint tableData; // 40 * unk2Size, different from vanguard 28 * 
+        public nint tableData;
         [FieldOffset(40)]
-        public nint packedIndices; // no idea
+        public nint packedIndices;
     }
 
     [StructLayout(LayoutKind.Explicit, Size = 376)]

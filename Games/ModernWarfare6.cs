@@ -39,17 +39,10 @@ namespace DotnesktRemastered.Games
             }
             MW6GfxWorldSurfaces gfxWorldSurfaces = gfxWorld.surfaces;
 
-            MW6GfxSurface[] surfaces = new MW6GfxSurface[gfxWorldSurfaces.count];
-            for (int i = 0; i < gfxWorldSurfaces.count; i++)
-            {
-                surfaces[i] = Cordycep.ReadMemory<MW6GfxSurface>(gfxWorldSurfaces.surfaces + i * sizeof(MW6GfxSurface));
-            }
-
-
             MeshNode[] meshes = new MeshNode[gfxWorldSurfaces.count];
             for (int i = 0; i < gfxWorldSurfaces.count; i++)
             {
-                MW6GfxSurface gfxSurface = surfaces[i];
+                MW6GfxSurface gfxSurface = Cordycep.ReadMemory<MW6GfxSurface>(gfxWorldSurfaces.surfaces + i * sizeof(MW6GfxSurface));
 
                 MW6GfxUgbSurfData ugbSurfData = Cordycep.ReadMemory<MW6GfxUgbSurfData>(gfxWorldSurfaces.ugbSurfData + (nint)(gfxSurface.ugbSurfDataIndex * sizeof(MW6GfxUgbSurfData)));
 

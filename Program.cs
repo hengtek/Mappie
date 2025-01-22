@@ -31,8 +31,8 @@ namespace DotnesktRemastered
             string gameId = Encoding.UTF8.GetString(BitConverter.GetBytes(Cordycep.GameID));
             Log.Information("{name} is running @ {environment}", "Cordycep.CLI", Cordycep.WorkingEnvironment);
             Log.Information("GameID: {game}", gameId);
-            Log.Information("Pools Address: {address}", $"{(nint)Cordycep.PoolsAddress:X}");
-            Log.Information("Strings Address: {address}", $"{(nint)Cordycep.StringsAddress:X}");
+            Log.Information("Pools Address: {address:X}", Cordycep.PoolsAddress);
+            Log.Information("Strings Address: {address:X}", Cordycep.StringsAddress);
             Log.Information("Game Directory: {directory}", Cordycep.GameDirectory);
             switch (gameId)
             {
