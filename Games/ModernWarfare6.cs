@@ -31,7 +31,6 @@ namespace DotnesktRemastered.Games
 
         private static unsafe void DumpMap(MW6GfxWorld gfxWorld, string baseName)
         {
-
             MW6GfxWorldTransientZone[] transientZone = new MW6GfxWorldTransientZone[gfxWorld.transientZoneCount];
             for (int i = 0; i < gfxWorld.transientZoneCount; i++)
             {
@@ -43,12 +42,11 @@ namespace DotnesktRemastered.Games
             for (int i = 0; i < gfxWorldSurfaces.count; i++)
             {
                 MW6GfxSurface gfxSurface = Cordycep.ReadMemory<MW6GfxSurface>(gfxWorldSurfaces.surfaces + i * sizeof(MW6GfxSurface));
-
                 MW6GfxUgbSurfData ugbSurfData = Cordycep.ReadMemory<MW6GfxUgbSurfData>(gfxWorldSurfaces.ugbSurfData + (nint)(gfxSurface.ugbSurfDataIndex * sizeof(MW6GfxUgbSurfData)));
-
                 MW6GfxWorldDrawOffset worldDrawOffset = ugbSurfData.worldDrawOffset;
-
                 MW6GfxWorldTransientZone zone = transientZone[ugbSurfData.transientZoneIndex];
+                nint materialPtr = Cordycep.ReadMemory<nint>(gfxWorldSurfaces.materials + (nint)(gfxSurface.materialIndex * 8));
+                MW6Material material = Cordycep.ReadMemory<MW6Material>(materialPtr);
 
                 ushort vertexCount = (ushort)gfxSurface.vertexCount;
 

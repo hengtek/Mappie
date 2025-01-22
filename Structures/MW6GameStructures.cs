@@ -96,6 +96,8 @@ namespace DotnesktRemastered.Structures
         public uint materialCount;
         [FieldOffset(112)]
         public nint surfaces;
+        [FieldOffset(152)]
+        public nint materials;
         [FieldOffset(168)]
         public nint ugbSurfData;
         [FieldOffset(176)]
@@ -153,5 +155,15 @@ namespace DotnesktRemastered.Structures
         public uint transientZoneCount;
         [FieldOffset(5664)]
         public nint transientZones;
+    }
+
+    [StructLayout(LayoutKind.Explicit, Size = 120)]
+    public unsafe struct MW6Material {
+        [FieldOffset(0)]
+        public ulong Hash;
+        [FieldOffset(28)]
+        public byte textureCount;
+        [FieldOffset(64)]
+        public nint textureTable;
     }
 }
