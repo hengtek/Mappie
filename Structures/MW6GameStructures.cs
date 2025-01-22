@@ -15,23 +15,25 @@ namespace DotnesktRemastered.Structures
         [FieldOffset(4)]
         public uint baseIndex;
         [FieldOffset(8)]
-        public uint unkOffset1; //points to unk2Ptr in drawverts
+        public uint tableOffset; //points to unk2Ptr in drawverts
         [FieldOffset(12)]
         public uint ugbSurfDataIndex;
         [FieldOffset(16)]
         public uint materialIndex;
         [FieldOffset(20)]
-        public uint unk0;
+        public ushort triCount;
+        [FieldOffset(22)]
+        public ushort packedIndiciesTableCount;
         [FieldOffset(24)]
         public ushort vertexCount;
         [FieldOffset(26)]
-        public ushort unk3;
+        public ushort unk3; // is zero
         [FieldOffset(28)]
         public uint unk4;
         [FieldOffset(32)]
-        public uint unk5;
+        public uint unk5; //FFFF
         [FieldOffset(36)]
-        public uint unkOffset2; //points to unk3Ptr in drawverts
+        public uint packedIndicesOffset; //points to unk3Ptr in drawverts
     }
 
     [StructLayout(LayoutKind.Explicit, Size = 128)]
@@ -112,17 +114,17 @@ namespace DotnesktRemastered.Structures
         [FieldOffset(4)]
         public uint indexCount;
         [FieldOffset(8)]
-        public uint unk2Size;
+        public uint tableCount;
         [FieldOffset(12)]
-        public uint unk3Size;
+        public uint packedIndicesSize;
         [FieldOffset(16)]
         public nint posData;
         [FieldOffset(24)]
         public nint indices;
         [FieldOffset(32)]
-        public nint unk2Ptr; // 40 * unk2Size, different from vanguard 28 * 
+        public nint tableData; // 40 * unk2Size, different from vanguard 28 * 
         [FieldOffset(40)]
-        public nint unk3Ptr; // no idea
+        public nint packedIndices; // no idea
     }
 
     [StructLayout(LayoutKind.Explicit, Size = 376)]

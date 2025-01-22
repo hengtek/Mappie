@@ -37,7 +37,7 @@ namespace DotnesktRemastered
             switch (gameId)
             {
                 case "YAMYAMOK":
-                    ModernWarfare6.DumpMap("mp_frontend_jup_01");
+                    ModernWarfare6.DumpMap("mp_jup_shipment_xmas");
                     break;
                 default:
                     Log.Error("Game is not supported :(.");

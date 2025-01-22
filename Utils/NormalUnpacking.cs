@@ -6,9 +6,9 @@ using System.Text;
 using System.Threading.Tasks;
 using static System.Runtime.InteropServices.JavaScript.JSType;
 
-namespace DotnesktRemastered
+namespace DotnesktRemastered.Utils
 {
-    public class Utils
+    public class NormalUnpacking
     {
         public static Vector3 UnpackCoDQTangent(uint packed)
         {
@@ -58,9 +58,9 @@ namespace DotnesktRemastered
                 2 * (qY * qZ + qW * qX));
 
             Vector3 normal = new Vector3(
-                (tangent.Y * bitangent.Z) - (tangent.Z * bitangent.Y),
-                (tangent.Z * bitangent.X) - (tangent.X * bitangent.Z),
-                (tangent.X * bitangent.Y) - (tangent.Y * bitangent.X));
+                tangent.Y * bitangent.Z - tangent.Z * bitangent.Y,
+                tangent.Z * bitangent.X - tangent.X * bitangent.Z,
+                tangent.X * bitangent.Y - tangent.Y * bitangent.X);
 
             return normal;
         }

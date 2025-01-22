@@ -1,10 +1,9 @@
 ﻿using Cast.NET;
 using Cast.NET.Nodes;
 using DotnesktRemastered.Structures;
+using DotnesktRemastered.Utils;
 using Serilog;
-using System.IO;
 using System.Numerics;
-using System.Xml.Linq;
 
 namespace DotnesktRemastered.Games
 {
@@ -87,12 +86,11 @@ namespace DotnesktRemastered.Games
 
                     position *= worldDrawOffset.scale;
                     position += new Vector3(worldDrawOffset.x, worldDrawOffset.y, worldDrawOffset.z);
-
                     positions.Add(position);
                     xyzPtr += 8;
 
                     uint packedTangentFrame = Cordycep.ReadMemory<uint>(tangentFramePtr);
-                    Vector3 normal = Utils.UnpackCoDQTangent(packedTangentFrame);
+                    Vector3 normal = NormalUnpacking.UnpackCoDQTangent(packedTangentFrame);
 
                     normals.Add(normal);
                     tangentFramePtr += 4;
@@ -108,22 +106,25 @@ namespace DotnesktRemastered.Games
                         texCoordPtr += 8;
                     }
                 }
-                //TODO FACES
-                /*
+
+                //unpack da fucking faces 
+                //References: https://github.com/Scobalula/Greyhound/blob/master/src/WraithXCOD/WraithXCOD/CoDXModelMeshHelper.cpp#L37
+
+
+                nint tableOffsetPtr = zone.drawVerts.tableData + (nint)(gfxSurface.tableOffset * 40);
+                nint indicesPtr = zone.drawVerts.indices + (nint)(gfxSurface.baseIndex * 2);
+                nint packedIndicies = zone.drawVerts.packedIndices + (nint) gfxSurface.packedIndicesOffset;
+
                 CastArrayProperty<ushort> faceIndices = mesh.AddArray<ushort>("f", new(gfxSurface.triCount * 3));
-                nint indiciesPtr = (nint)(zone.drawVerts.indices + gfxSurface.baseIndex * 2);
 
-                for (int j = 0; j < gfxSurface.triCount * 3; j++)
+                for (int j = 0; j < gfxSurface.triCount; j++)
                 {
-                    ushort index = Cordycep.ReadMemory<ushort>(indiciesPtr);
-                    faceIndices.Add(index);
-                    indiciesPtr += 2;
+                    ushort[] faces = MW6FaceIndices.UnpackFaceIndices(tableOffsetPtr, gfxSurface.packedIndiciesTableCount, packedIndicies, indicesPtr, (uint)j);
+                    faceIndices.Add(faces[0]);
+                    faceIndices.Add(faces[1]);
+                    faceIndices.Add(faces[2]);
                 }
-                */
                 meshes[i] = mesh;
-                //Log.Information("Mesh {0} raw surface data: {1}", i, Cordycep.ReadRawMemory(gfxWorldSurfaces.surfaces + i * sizeof(MW6GfxSurface), sizeof(MW6GfxSurface)));
-                //Log.Information("Mesh {0} raw ugbSurfData: {1}", i, Cordycep.ReadRawMemory(gfxWorldSurfaces.ugbSurfData + (nint)(gfxSurface.ugbSurfDataIndex * sizeof(MW6GfxUgbSurfData)), sizeof(MW6GfxUgbSurfData)));
-
             }
             //Write to file
 
@@ -139,5 +140,6 @@ namespace DotnesktRemastered.Games
             root.AddNode(model);
             CastWriter.Save(@"D:/" + baseName + ".cast", root);
         }
+
     }
 }
