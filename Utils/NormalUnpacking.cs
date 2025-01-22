@@ -57,12 +57,7 @@ namespace DotnesktRemastered.Utils
                 1 - 2 * (qX * qX + qZ * qZ),
                 2 * (qY * qZ + qW * qX));
 
-            Vector3 normal = new Vector3(
-                tangent.Y * bitangent.Z - tangent.Z * bitangent.Y,
-                tangent.Z * bitangent.X - tangent.X * bitangent.Z,
-                tangent.X * bitangent.Y - tangent.Y * bitangent.X);
-
-            return normal;
+            return Vector3.Cross(tangent, bitangent);
         }
     }
 }

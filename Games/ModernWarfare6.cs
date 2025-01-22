@@ -80,17 +80,19 @@ namespace DotnesktRemastered.Games
                 {
                     ulong packedPosition = Cordycep.ReadMemory<ulong>(xyzPtr);
                     Vector3 position = new Vector3(
-                        (float)((packedPosition >> 0) & 0x1FFFFF),
-                        (float)((packedPosition >> 21) & 0x1FFFFF),
-                        (float)((packedPosition >> 42) & 0x1FFFFF));
+                        ((((packedPosition >> 0) & 0x1FFFFF) * worldDrawOffset.scale) + worldDrawOffset.x),
+                        ((((packedPosition >> 21) & 0x1FFFFF) * worldDrawOffset.scale) + worldDrawOffset.y),
+                        ((((packedPosition >> 42) & 0x1FFFFF) * worldDrawOffset.scale) + worldDrawOffset.z));
 
-                    position *= worldDrawOffset.scale;
-                    position += new Vector3(worldDrawOffset.x, worldDrawOffset.y, worldDrawOffset.z);
                     positions.Add(position);
                     xyzPtr += 8;
 
                     uint packedTangentFrame = Cordycep.ReadMemory<uint>(tangentFramePtr);
-                    Vector3 normal = NormalUnpacking.UnpackCoDQTangent(packedTangentFrame);
+
+                    //TODO: FIX ME
+                    //Okay for whatever reason the normal is inverted
+                    //i have no idea why is this happening but multiply them by -1 seems to kinda fix it
+                    Vector3 normal = NormalUnpacking.UnpackCoDQTangent(packedTangentFrame) * -1;
 
                     normals.Add(normal);
                     tangentFramePtr += 4;
@@ -109,7 +111,6 @@ namespace DotnesktRemastered.Games
 
                 //unpack da fucking faces 
                 //References: https://github.com/Scobalula/Greyhound/blob/master/src/WraithXCOD/WraithXCOD/CoDXModelMeshHelper.cpp#L37
-
 
                 nint tableOffsetPtr = zone.drawVerts.tableData + (nint)(gfxSurface.tableOffset * 40);
                 nint indicesPtr = zone.drawVerts.indices + (nint)(gfxSurface.baseIndex * 2);

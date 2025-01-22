@@ -44,7 +44,6 @@ namespace DotnesktRemastered.Utils
         {
             int bitIndex;
 
-            // Find the index of the highest set bit
             if (!Bits.BitScanReverse64(bits, out bitIndex))
                 bitIndex = 64;
             else
