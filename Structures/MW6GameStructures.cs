@@ -161,9 +161,30 @@ namespace DotnesktRemastered.Structures
     public unsafe struct MW6Material {
         [FieldOffset(0)]
         public ulong Hash;
-        [FieldOffset(28)]
+        [FieldOffset(24)]
         public byte textureCount;
-        [FieldOffset(64)]
+        [FieldOffset(26)]
+        public byte layerCount;
+        [FieldOffset(27)]
+        public byte imageCount;
+        [FieldOffset(40)]
         public nint textureTable;
+        [FieldOffset(48)]
+        public nint imageTable;
+    }
+
+    [StructLayout(LayoutKind.Explicit, Size = 2)]
+    public unsafe struct MW6MaterialTextureDef
+    {
+        [FieldOffset(0)]
+        public byte index;
+        [FieldOffset(1)]
+        public byte imageIdx;
+    }
+
+    [StructLayout(LayoutKind.Explicit, Size = 64)]
+    public unsafe struct MW6GfxImage
+    {
+
     }
 }

@@ -4,6 +4,7 @@ using DotnesktRemastered.Structures;
 using DotnesktRemastered.Utils;
 using Serilog;
 using System.Numerics;
+using System.Text;
 
 namespace DotnesktRemastered.Games
 {
@@ -38,85 +39,30 @@ namespace DotnesktRemastered.Games
             }
             MW6GfxWorldSurfaces gfxWorldSurfaces = gfxWorld.surfaces;
 
-            MeshNode[] meshes = new MeshNode[gfxWorldSurfaces.count];
+            SurfaceData[] meshes = new SurfaceData[gfxWorldSurfaces.count];
             for (int i = 0; i < gfxWorldSurfaces.count; i++)
             {
                 MW6GfxSurface gfxSurface = Cordycep.ReadMemory<MW6GfxSurface>(gfxWorldSurfaces.surfaces + i * sizeof(MW6GfxSurface));
                 MW6GfxUgbSurfData ugbSurfData = Cordycep.ReadMemory<MW6GfxUgbSurfData>(gfxWorldSurfaces.ugbSurfData + (nint)(gfxSurface.ugbSurfDataIndex * sizeof(MW6GfxUgbSurfData)));
-                MW6GfxWorldDrawOffset worldDrawOffset = ugbSurfData.worldDrawOffset;
                 MW6GfxWorldTransientZone zone = transientZone[ugbSurfData.transientZoneIndex];
+
+                MeshNode mesh = ReadMesh(gfxSurface, ugbSurfData, zone);
+
                 nint materialPtr = Cordycep.ReadMemory<nint>(gfxWorldSurfaces.materials + (nint)(gfxSurface.materialIndex * 8));
                 MW6Material material = Cordycep.ReadMemory<MW6Material>(materialPtr);
+                ulong materialHash = material.Hash & 0x0FFFFFFFFFFFFFFF;
+                MaterialNode materialNode = new MaterialNode($"xmaterial_{materialHash:X}", "pbr");
+                mesh.AddValue("m", materialNode.Hash);
+                PopulateMaterial(material);
 
-                ushort vertexCount = (ushort)gfxSurface.vertexCount;
-
-                MeshNode mesh = new MeshNode();
-                mesh.AddValue("ul", ugbSurfData.layerCount);
-
-                for (int layerIdx = 0; layerIdx < ugbSurfData.layerCount; layerIdx++)
+                SurfaceData surfaceData = new SurfaceData()
                 {
-                    mesh.AddArray<Vector2>($"u{layerIdx}", new(gfxSurface.vertexCount));
-                }
+                    mesh = mesh,
+                    material = materialNode,
+                    textures = PopulateMaterial(material)
+                };
 
-                CastArrayProperty<Vector2> uvs = mesh.GetProperty<CastArrayProperty<Vector2>>("u0");
-
-                nint xyzPtr = zone.drawVerts.posData + (nint)ugbSurfData.xyzOffset;
-                nint tangentFramePtr = zone.drawVerts.posData + (nint)ugbSurfData.tangentFrameOffset;
-                nint texCoordPtr = zone.drawVerts.posData + (nint)ugbSurfData.texCoordOffset;
-
-                CastArrayProperty<Vector3> positions = mesh.AddArray<Vector3>("vp", new(vertexCount));
-                CastArrayProperty<Vector3> normals = mesh.AddArray<Vector3>("vn", new(vertexCount));
-
-                for (int j = 0; j < gfxSurface.vertexCount; j++)
-                {
-                    ulong packedPosition = Cordycep.ReadMemory<ulong>(xyzPtr);
-                    Vector3 position = new Vector3(
-                        ((((packedPosition >> 0) & 0x1FFFFF) * worldDrawOffset.scale) + worldDrawOffset.x),
-                        ((((packedPosition >> 21) & 0x1FFFFF) * worldDrawOffset.scale) + worldDrawOffset.y),
-                        ((((packedPosition >> 42) & 0x1FFFFF) * worldDrawOffset.scale) + worldDrawOffset.z));
-
-                    positions.Add(position);
-                    xyzPtr += 8;
-
-                    uint packedTangentFrame = Cordycep.ReadMemory<uint>(tangentFramePtr);
-
-                    //TODO: FIX ME
-                    //Okay for whatever reason the normal is inverted
-                    //i have no idea why is this happening but multiply them by -1 seems to kinda fix it
-                    Vector3 normal = NormalUnpacking.UnpackCoDQTangent(packedTangentFrame) * -1;
-
-                    normals.Add(normal);
-                    tangentFramePtr += 4;
-
-                    Vector2 uv = Cordycep.ReadMemory<Vector2>(texCoordPtr);
-                    uvs.Add(uv);
-                    texCoordPtr += 8;
-
-                    for (int layerIdx = 1; layerIdx < ugbSurfData.layerCount; layerIdx++)
-                    {
-                        Vector2 uvExtra = Cordycep.ReadMemory<Vector2>(texCoordPtr);
-                        mesh.GetProperty<CastArrayProperty<Vector2>>($"u{layerIdx}").Add(uvExtra);
-                        texCoordPtr += 8;
-                    }
-                }
-
-                //unpack da fucking faces 
-                //References: https://github.com/Scobalula/Greyhound/blob/master/src/WraithXCOD/WraithXCOD/CoDXModelMeshHelper.cpp#L37
-
-                nint tableOffsetPtr = zone.drawVerts.tableData + (nint)(gfxSurface.tableOffset * 40);
-                nint indicesPtr = zone.drawVerts.indices + (nint)(gfxSurface.baseIndex * 2);
-                nint packedIndicies = zone.drawVerts.packedIndices + (nint) gfxSurface.packedIndicesOffset;
-
-                CastArrayProperty<ushort> faceIndices = mesh.AddArray<ushort>("f", new(gfxSurface.triCount * 3));
-
-                for (int j = 0; j < gfxSurface.triCount; j++)
-                {
-                    ushort[] faces = MW6FaceIndices.UnpackFaceIndices(tableOffsetPtr, gfxSurface.packedIndiciesTableCount, packedIndicies, indicesPtr, (uint)j);
-                    faceIndices.Add(faces[0]);
-                    faceIndices.Add(faces[1]);
-                    faceIndices.Add(faces[2]);
-                }
-                meshes[i] = mesh;
+                meshes[i] = surfaceData;
             }
             //Write to file
 
@@ -124,14 +70,107 @@ namespace DotnesktRemastered.Games
             SkeletonNode skeleton = new SkeletonNode();
             model.AddString("n", $"{baseName}_base_mesh");
             model.AddNode(skeleton);
-            foreach(MeshNode mesh in meshes)
+            foreach (SurfaceData mesh in meshes)
             {
-                model.AddNode(mesh);
+                model.AddNode(mesh.mesh);
+                model.AddNode(mesh.material);
             }
             CastNode root = new CastNode(CastNodeIdentifier.Root);
             root.AddNode(model);
             CastWriter.Save(@"D:/" + baseName + ".cast", root);
         }
 
+        private static unsafe List<TextureSemanticData> PopulateMaterial(MW6Material material)
+        {
+            MW6GfxImage[] images = new MW6GfxImage[material.imageCount];
+
+            for (int i = 0; i < material.imageCount; i++)
+            {
+                nint imagePtr = Cordycep.ReadMemory<nint>(material.imageTable + i * 8);
+                MW6GfxImage image = Cordycep.ReadMemory<MW6GfxImage>(imagePtr);
+                images[i] = image;
+            }
+
+            for (int i = 0; i < material.textureCount; i++)
+            {
+                MW6MaterialTextureDef textureDef = Cordycep.ReadMemory<MW6MaterialTextureDef>(material.textureTable + i * sizeof(MW6MaterialTextureDef));
+                MW6GfxImage image = images[textureDef.imageIdx];
+
+                int uvMapIndex = 0;
+            }
+            return null;
+        }
+
+        private static unsafe MeshNode ReadMesh(MW6GfxSurface gfxSurface, MW6GfxUgbSurfData ugbSurfData, MW6GfxWorldTransientZone zone)
+        {
+            MW6GfxWorldDrawOffset worldDrawOffset = ugbSurfData.worldDrawOffset;
+            MeshNode mesh = new MeshNode();
+            mesh.AddValue("ul", ugbSurfData.layerCount);
+
+            for (int layerIdx = 0; layerIdx < ugbSurfData.layerCount; layerIdx++)
+            {
+                mesh.AddArray<Vector2>($"u{layerIdx}", new(gfxSurface.vertexCount));
+            }
+
+            CastArrayProperty<Vector2> uvs = mesh.GetProperty<CastArrayProperty<Vector2>>("u0");
+
+            nint xyzPtr = zone.drawVerts.posData + (nint)ugbSurfData.xyzOffset;
+            nint tangentFramePtr = zone.drawVerts.posData + (nint)ugbSurfData.tangentFrameOffset;
+            nint texCoordPtr = zone.drawVerts.posData + (nint)ugbSurfData.texCoordOffset;
+
+            CastArrayProperty<Vector3> positions = mesh.AddArray<Vector3>("vp", new(gfxSurface.vertexCount));
+            CastArrayProperty<Vector3> normals = mesh.AddArray<Vector3>("vn", new(gfxSurface.vertexCount));
+
+            for (int j = 0; j < gfxSurface.vertexCount; j++)
+            {
+                ulong packedPosition = Cordycep.ReadMemory<ulong>(xyzPtr);
+                Vector3 position = new Vector3(
+                    ((((packedPosition >> 0) & 0x1FFFFF) * worldDrawOffset.scale) + worldDrawOffset.x),
+                    ((((packedPosition >> 21) & 0x1FFFFF) * worldDrawOffset.scale) + worldDrawOffset.y),
+                    ((((packedPosition >> 42) & 0x1FFFFF) * worldDrawOffset.scale) + worldDrawOffset.z));
+
+                positions.Add(position);
+                xyzPtr += 8;
+
+                uint packedTangentFrame = Cordycep.ReadMemory<uint>(tangentFramePtr);
+
+                //TODO: FIX ME
+                //Okay for whatever reason the normal is inverted
+                //i have no idea why is this happening but multiply them by -1 seems to kinda fix it
+                Vector3 normal = NormalUnpacking.UnpackCoDQTangent(packedTangentFrame) * -1;
+
+                normals.Add(normal);
+                tangentFramePtr += 4;
+
+                Vector2 uv = Cordycep.ReadMemory<Vector2>(texCoordPtr);
+                uvs.Add(uv);
+                texCoordPtr += 8;
+
+                for (int layerIdx = 1; layerIdx < ugbSurfData.layerCount; layerIdx++)
+                {
+                    Vector2 uvExtra = Cordycep.ReadMemory<Vector2>(texCoordPtr);
+                    mesh.GetProperty<CastArrayProperty<Vector2>>($"u{layerIdx}").Add(uvExtra);
+                    texCoordPtr += 8;
+                }
+            }
+
+            //unpack da fucking faces 
+            //References: https://github.com/Scobalula/Greyhound/blob/master/src/WraithXCOD/WraithXCOD/CoDXModelMeshHelper.cpp#L37
+
+            nint tableOffsetPtr = zone.drawVerts.tableData + (nint)(gfxSurface.tableOffset * 40);
+            nint indicesPtr = zone.drawVerts.indices + (nint)(gfxSurface.baseIndex * 2);
+            nint packedIndicies = zone.drawVerts.packedIndices + (nint)gfxSurface.packedIndicesOffset;
+
+            CastArrayProperty<ushort> faceIndices = mesh.AddArray<ushort>("f", new(gfxSurface.triCount * 3));
+
+            for (int j = 0; j < gfxSurface.triCount; j++)
+            {
+                ushort[] faces = MW6FaceIndices.UnpackFaceIndices(tableOffsetPtr, gfxSurface.packedIndiciesTableCount, packedIndicies, indicesPtr, (uint)j);
+                faceIndices.Add(faces[0]);
+                faceIndices.Add(faces[1]);
+                faceIndices.Add(faces[2]);
+            }
+            return mesh;
+        }
     }
 }
