@@ -3,6 +3,7 @@ using Cast.NET.Nodes;
 using DotnesktRemastered.Structures;
 using DotnesktRemastered.Utils;
 using Serilog;
+using System.Buffers.Binary;
 using System.Numerics;
 using System.Text;
 
@@ -64,8 +65,39 @@ namespace DotnesktRemastered.Games
 
                 meshes[i] = surfaceData;
             }
-            //Write to file
+            MW6GfxWorldStaticModels smodels = gfxWorld.smodels;
 
+            for (int i = 0; i < smodels.collectionsCount; i++)
+            {
+                MW6GfxStaticModelCollection collection = Cordycep.ReadMemory<MW6GfxStaticModelCollection>(smodels.collections + i * 16);
+                MW6GfxStaticModel staticModel = Cordycep.ReadMemory<MW6GfxStaticModel>(smodels.smodels + collection.smodelIndex * 16);
+                MW6GfxWorldTransientZone zone = transientZone[collection.transientGfxWorldPlaced];
+                MW6XModel xmodel = Cordycep.ReadMemory<MW6XModel>(staticModel.xmodel);
+
+                ulong xmodelHashName = xmodel.Hash & 0x0FFFFFFFFFFFFFFF;
+
+                int instanceId = (int)collection.firstInstance;
+                while (instanceId < collection.firstInstance + collection.instanceCount)
+                {
+                    MW6GfxSModelInstanceData instanceData = Cordycep.ReadMemory<MW6GfxSModelInstanceData>((nint)smodels.instanceData + instanceId * 24);
+                    Vector3 translation = new Vector3(
+                        (float)instanceData.translation[0] * 0.000244140625f,
+                        (float)instanceData.translation[1] * 0.000244140625f,
+                        (float)instanceData.translation[2] * 0.000244140625f
+                    );
+
+                    Quaternion rotation = new Quaternion(
+                        Math.Min(Math.Max((float)((float)instanceData.orientation[0] * 0.000030518044f) - 1.0f, -1.0f), 1.0f),
+                        Math.Min(Math.Max((float)((float)instanceData.orientation[1] * 0.000030518044f) - 1.0f, -1.0f), 1.0f),
+                        Math.Min(Math.Max((float)((float)instanceData.orientation[2] * 0.000030518044f) - 1.0f, -1.0f), 1.0f),
+                        Math.Min(Math.Max((float)((float)instanceData.orientation[3] * 0.000030518044f) - 1.0f, -1.0f), 1.0f)
+                    );
+
+                    instanceId++;
+                }
+            }
+            //Write to file
+            /*
             ModelNode model = new ModelNode();
             SkeletonNode skeleton = new SkeletonNode();
             model.AddString("n", $"{baseName}_base_mesh");
@@ -78,6 +110,7 @@ namespace DotnesktRemastered.Games
             CastNode root = new CastNode(CastNodeIdentifier.Root);
             root.AddNode(model);
             CastWriter.Save(@"D:/" + baseName + ".cast", root);
+            */
         }
 
         private static unsafe List<TextureSemanticData> PopulateMaterial(MW6Material material)

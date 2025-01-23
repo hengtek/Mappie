@@ -151,6 +151,8 @@ namespace DotnesktRemastered.Structures
         public nint baseName;
         [FieldOffset(192)]
         public MW6GfxWorldSurfaces surfaces;
+        [FieldOffset(560)]
+        public MW6GfxWorldStaticModels smodels;
         [FieldOffset(5660)]
         public uint transientZoneCount;
         [FieldOffset(5664)]
@@ -182,9 +184,64 @@ namespace DotnesktRemastered.Structures
         public byte imageIdx;
     }
 
+    [StructLayout(LayoutKind.Explicit, Size = 384)]
+    public unsafe struct MW6GfxWorldStaticModels
+    {
+        [FieldOffset(4)]
+        public uint smodelCount;
+        [FieldOffset(8)]
+        public uint collectionsCount;
+        [FieldOffset(12)]
+        public uint instanceCount;
+        [FieldOffset(80)]
+        public nint surfaces;
+        [FieldOffset(88)]
+        public nint smodels;
+        [FieldOffset(104)]
+        public nint collections;
+        [FieldOffset(168)]
+        public nint instanceData;
+    }
+
+    [StructLayout(LayoutKind.Sequential, Size = 16)]
+    public unsafe struct MW6GfxStaticModel
+    {
+        public nint xmodel;
+        public byte flags;
+        public byte firstMtlSkinIndex;
+        public ushort firstStaticModelSurfaceIndex;
+    }
+
+    [StructLayout(LayoutKind.Sequential, Size = 16)]
+    public unsafe struct MW6GfxStaticModelCollection
+    {
+        public uint firstInstance;
+        public uint instanceCount;
+        public ushort smodelIndex;
+        public ushort transientGfxWorldPlaced;
+        public ushort clutterIndex;
+        public byte flags;
+        public byte pad;
+    };
+
+    [StructLayout(LayoutKind.Sequential, Size = 16)]
+    public unsafe struct MW6GfxSModelInstanceData
+    {
+        public fixed int translation[3];
+        public fixed ushort orientation[4];
+        public float scale;
+    }
+
     [StructLayout(LayoutKind.Explicit, Size = 64)]
     public unsafe struct MW6GfxImage
     {
 
+    }
+
+    [StructLayout(LayoutKind.Explicit, Size = 232)]
+    public unsafe struct MW6XModel
+    {
+        [FieldOffset(0)]
+        public ulong Hash;
     }
 }
