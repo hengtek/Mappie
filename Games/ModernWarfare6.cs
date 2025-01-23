@@ -80,6 +80,7 @@ namespace DotnesktRemastered.Games
                 while (instanceId < collection.firstInstance + collection.instanceCount)
                 {
                     MW6GfxSModelInstanceData instanceData = Cordycep.ReadMemory<MW6GfxSModelInstanceData>((nint)smodels.instanceData + instanceId * 24);
+                    
                     Vector3 translation = new Vector3(
                         (float)instanceData.translation[0] * 0.000244140625f,
                         (float)instanceData.translation[1] * 0.000244140625f,
@@ -96,8 +97,9 @@ namespace DotnesktRemastered.Games
                     instanceId++;
                 }
             }
+
             //Write to file
-            /*
+            
             ModelNode model = new ModelNode();
             SkeletonNode skeleton = new SkeletonNode();
             model.AddString("n", $"{baseName}_base_mesh");
@@ -110,7 +112,6 @@ namespace DotnesktRemastered.Games
             CastNode root = new CastNode(CastNodeIdentifier.Root);
             root.AddNode(model);
             CastWriter.Save(@"D:/" + baseName + ".cast", root);
-            */
         }
 
         private static unsafe List<TextureSemanticData> PopulateMaterial(MW6Material material)
@@ -170,7 +171,7 @@ namespace DotnesktRemastered.Games
                 //TODO: FIX ME
                 //Okay for whatever reason the normal is inverted
                 //i have no idea why is this happening but multiply them by -1 seems to kinda fix it
-                Vector3 normal = NormalUnpacking.UnpackCoDQTangent(packedTangentFrame) * -1;
+                Vector3 normal = NormalUnpacking.UnpackCoDQTangent(packedTangentFrame);
 
                 normals.Add(normal);
                 tangentFramePtr += 4;
@@ -187,6 +188,19 @@ namespace DotnesktRemastered.Games
                 }
             }
 
+            if (ugbSurfData.colorOffset != 0)
+            {
+                mesh.AddValue("cl", (uint)1);
+                CastArrayProperty<uint> colors = mesh.AddArray<uint>("c0", new(gfxSurface.vertexCount));
+                nint colorPtr = (nint)(zone.drawVerts.posSize + ugbSurfData.colorOffset);
+                for (int j = 0; j < gfxSurface.vertexCount; j++)
+                {
+                    uint color = Cordycep.ReadMemory<uint>(colorPtr);
+                    colors.Add(color);
+                    colorPtr += 4;
+                }
+            }
+
             //unpack da fucking faces 
             //References: https://github.com/Scobalula/Greyhound/blob/master/src/WraithXCOD/WraithXCOD/CoDXModelMeshHelper.cpp#L37
 
@@ -199,9 +213,9 @@ namespace DotnesktRemastered.Games
             for (int j = 0; j < gfxSurface.triCount; j++)
             {
                 ushort[] faces = MW6FaceIndices.UnpackFaceIndices(tableOffsetPtr, gfxSurface.packedIndiciesTableCount, packedIndicies, indicesPtr, (uint)j);
-                faceIndices.Add(faces[0]);
-                faceIndices.Add(faces[1]);
                 faceIndices.Add(faces[2]);
+                faceIndices.Add(faces[1]);
+                faceIndices.Add(faces[0]);
             }
             return mesh;
         }
