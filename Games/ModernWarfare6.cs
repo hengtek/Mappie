@@ -40,31 +40,20 @@ namespace DotnesktRemastered.Games
             }
             MW6GfxWorldSurfaces gfxWorldSurfaces = gfxWorld.surfaces;
 
-            SurfaceData[] meshes = new SurfaceData[gfxWorldSurfaces.count];
+            MeshData[] meshes = new MeshData[gfxWorldSurfaces.count];
             for (int i = 0; i < gfxWorldSurfaces.count; i++)
             {
                 MW6GfxSurface gfxSurface = Cordycep.ReadMemory<MW6GfxSurface>(gfxWorldSurfaces.surfaces + i * sizeof(MW6GfxSurface));
                 MW6GfxUgbSurfData ugbSurfData = Cordycep.ReadMemory<MW6GfxUgbSurfData>(gfxWorldSurfaces.ugbSurfData + (nint)(gfxSurface.ugbSurfDataIndex * sizeof(MW6GfxUgbSurfData)));
                 MW6GfxWorldTransientZone zone = transientZone[ugbSurfData.transientZoneIndex];
-
-                MeshNode mesh = ReadMesh(gfxSurface, ugbSurfData, zone);
-
                 nint materialPtr = Cordycep.ReadMemory<nint>(gfxWorldSurfaces.materials + (nint)(gfxSurface.materialIndex * 8));
                 MW6Material material = Cordycep.ReadMemory<MW6Material>(materialPtr);
-                ulong materialHash = material.Hash & 0x0FFFFFFFFFFFFFFF;
-                MaterialNode materialNode = new MaterialNode($"xmaterial_{materialHash:X}", "pbr");
-                mesh.AddValue("m", materialNode.Hash);
-                PopulateMaterial(material);
 
-                SurfaceData surfaceData = new SurfaceData()
-                {
-                    mesh = mesh,
-                    material = materialNode,
-                    textures = PopulateMaterial(material)
-                };
+                MeshData mesh = ReadMesh(gfxSurface, ugbSurfData, material, zone);
 
-                meshes[i] = surfaceData;
+                meshes[i] = mesh;
             }
+
             MW6GfxWorldStaticModels smodels = gfxWorld.smodels;
 
             for (int i = 0; i < smodels.collectionsCount; i++)
@@ -104,7 +93,7 @@ namespace DotnesktRemastered.Games
             SkeletonNode skeleton = new SkeletonNode();
             model.AddString("n", $"{baseName}_base_mesh");
             model.AddNode(skeleton);
-            foreach (SurfaceData mesh in meshes)
+            foreach (MeshData mesh in meshes)
             {
                 model.AddNode(mesh.mesh);
                 model.AddNode(mesh.material);
@@ -135,10 +124,16 @@ namespace DotnesktRemastered.Games
             return null;
         }
 
-        private static unsafe MeshNode ReadMesh(MW6GfxSurface gfxSurface, MW6GfxUgbSurfData ugbSurfData, MW6GfxWorldTransientZone zone)
+        private static unsafe MeshData ReadMesh(MW6GfxSurface gfxSurface, MW6GfxUgbSurfData ugbSurfData, MW6Material material,MW6GfxWorldTransientZone zone)
         {
             MW6GfxWorldDrawOffset worldDrawOffset = ugbSurfData.worldDrawOffset;
+
             MeshNode mesh = new MeshNode();
+
+            ulong materialHash = material.Hash & 0x0FFFFFFFFFFFFFFF;
+            MaterialNode materialNode = new MaterialNode($"xmaterial_{materialHash:X}", "pbr");
+            mesh.AddValue("m", materialNode.Hash);
+
             mesh.AddValue("ul", ugbSurfData.layerCount);
 
             for (int layerIdx = 0; layerIdx < ugbSurfData.layerCount; layerIdx++)
@@ -168,9 +163,6 @@ namespace DotnesktRemastered.Games
 
                 uint packedTangentFrame = Cordycep.ReadMemory<uint>(tangentFramePtr);
 
-                //TODO: FIX ME
-                //Okay for whatever reason the normal is inverted
-                //i have no idea why is this happening but multiply them by -1 seems to kinda fix it
                 Vector3 normal = NormalUnpacking.UnpackCoDQTangent(packedTangentFrame);
 
                 normals.Add(normal);
@@ -217,7 +209,13 @@ namespace DotnesktRemastered.Games
                 faceIndices.Add(faces[1]);
                 faceIndices.Add(faces[0]);
             }
-            return mesh;
+
+            return new MeshData()
+            {
+                mesh = mesh,
+                material = materialNode,
+                textures = PopulateMaterial(material)
+            };
         }
     }
 }
