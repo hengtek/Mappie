@@ -7,7 +7,7 @@ using System.Threading.Tasks;
 
 namespace DotnesktRemastered.Structures
 {
-    public struct SurfaceData
+    public struct MeshData
     {
         public MeshNode mesh;
         public MaterialNode material;
