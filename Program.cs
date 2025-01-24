@@ -1,4 +1,5 @@
-﻿using DotnesktRemastered.Games;
+﻿using DotnesktRemastered.FileStorage;
+using DotnesktRemastered.Games;
 using Serilog;
 using System;
 using System.Diagnostics;
@@ -37,6 +38,9 @@ namespace DotnesktRemastered
             switch (gameId)
             {
                 case "YAMYAMOK":
+                    //Cordycep should've join this but nooo it doesnt.
+                    XSub.LoadFiles(Cordycep.GameDirectory);
+                    XSub.ExtractXSubPackage(1484292732661252905, 0);
                     ModernWarfare6.DumpMap("mp_jup_shipment_xmas");
                     break;
                 default:

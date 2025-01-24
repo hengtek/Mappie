@@ -78,8 +78,15 @@ namespace DotnesktRemastered
             GameDirectory = new string(reader.ReadChars(gameDirectoryLength));
         }
 
-        public unsafe T ReadMemory<T>(nint address) where T : unmanaged
+        //isLocal: check if its address is local or not,
+        //yes i know this is stupid and dumb
+        //but its the least "breaking" way for me to do this
+        public unsafe T ReadMemory<T>(nint address, bool isLocal = false) where T : unmanaged
         {
+            if(isLocal)
+            {
+                return *(T*)address;
+            }
             T result = new();
             var size = (nuint)Marshal.SizeOf<T>();
 

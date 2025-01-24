@@ -16,4 +16,11 @@
     <PackageReference Include="Serilog.Sinks.Console" Version="6.0.0" />
   </ItemGroup>
 
+  <ItemGroup>
+    <ContentWithTargetPath Include="Externals\oo2core_8_win64.dll">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+      <TargetPath>oo2core_8_win64.dll</TargetPath>
+		</ContentWithTargetPath>
+	</ItemGroup>
+
 </Project>

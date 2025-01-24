@@ -1,11 +1,15 @@
 ﻿using Cast.NET;
 using Cast.NET.Nodes;
+using DotnesktRemastered.FileStorage;
 using DotnesktRemastered.Structures;
 using DotnesktRemastered.Utils;
 using Serilog;
+using System;
 using System.Buffers.Binary;
 using System.Numerics;
+using System.Runtime.InteropServices;
 using System.Text;
+using System.Xml.Linq;
 
 namespace DotnesktRemastered.Games
 {
@@ -15,6 +19,7 @@ namespace DotnesktRemastered.Games
 
         private static uint GFXMAP_POOL_IDX = 50;
 
+        private static Dictionary<ulong, XModelMeshData[]> models = new Dictionary<ulong, XModelMeshData[]>();
         public static void DumpMap(string name)
         {
             Log.Information("Finding map {baseName}...", name);
@@ -58,13 +63,38 @@ namespace DotnesktRemastered.Games
 
             for (int i = 0; i < smodels.collectionsCount; i++)
             {
-                MW6GfxStaticModelCollection collection = Cordycep.ReadMemory<MW6GfxStaticModelCollection>(smodels.collections + i * 16);
-                MW6GfxStaticModel staticModel = Cordycep.ReadMemory<MW6GfxStaticModel>(smodels.smodels + collection.smodelIndex * 16);
+                MW6GfxStaticModelCollection collection = Cordycep.ReadMemory<MW6GfxStaticModelCollection>(smodels.collections + i * sizeof(MW6GfxStaticModelCollection));
+                MW6GfxStaticModel staticModel = Cordycep.ReadMemory<MW6GfxStaticModel>(smodels.smodels + collection.smodelIndex * sizeof(MW6GfxStaticModel));
                 MW6GfxWorldTransientZone zone = transientZone[collection.transientGfxWorldPlaced];
                 MW6XModel xmodel = Cordycep.ReadMemory<MW6XModel>(staticModel.xmodel);
 
-                ulong xmodelHashName = xmodel.Hash & 0x0FFFFFFFFFFFFFFF;
+                MW6XModelLodInfo lodInfo = Cordycep.ReadMemory<MW6XModelLodInfo>(xmodel.lodInfo);
+                MW6XModelSurfs xmodelSurfs = Cordycep.ReadMemory<MW6XModelSurfs>(lodInfo.modelSurfsStaging);
+                MW6XSurfaceShared shared = Cordycep.ReadMemory<MW6XSurfaceShared>(xmodelSurfs.shared);
 
+                XModelMeshData[] xmodelMeshes;
+                if (models.ContainsKey(xmodel.hash))
+                {
+                    xmodelMeshes = models[xmodel.hash];
+                }
+                else
+                {
+                    if (shared.data == 0)
+                    {
+                        byte[] buffer = XSub.ExtractXSubPackage(xmodelSurfs.xpakKey, shared.dataSize);
+                        nint sharedPtr = Marshal.AllocHGlobal((int)shared.dataSize);
+                        Marshal.Copy(buffer, 0, sharedPtr, (int)shared.dataSize);
+                        xmodelMeshes = ReadXModelMeshes(xmodel, (nint)sharedPtr, true);
+                        Marshal.FreeHGlobal(sharedPtr);
+                    }
+                    else
+                    {
+                        xmodelMeshes = ReadXModelMeshes(xmodel, shared.data, false);
+                    }
+                    models[xmodel.hash] = xmodelMeshes;
+                }
+
+                string xmodelName = Cordycep.ReadString(xmodel.name);
                 int instanceId = (int)collection.firstInstance;
                 while (instanceId < collection.firstInstance + collection.instanceCount)
                 {
@@ -88,7 +118,7 @@ namespace DotnesktRemastered.Games
             }
 
             //Write to file
-            
+            /*
             ModelNode model = new ModelNode();
             SkeletonNode skeleton = new SkeletonNode();
             model.AddString("n", $"{baseName}_base_mesh");
@@ -101,6 +131,7 @@ namespace DotnesktRemastered.Games
             CastNode root = new CastNode(CastNodeIdentifier.Root);
             root.AddNode(model);
             CastWriter.Save(@"D:/" + baseName + ".cast", root);
+            */
         }
 
         private static unsafe List<TextureSemanticData> PopulateMaterial(MW6Material material)
@@ -130,7 +161,7 @@ namespace DotnesktRemastered.Games
 
             MeshNode mesh = new MeshNode();
 
-            ulong materialHash = material.Hash & 0x0FFFFFFFFFFFFFFF;
+            ulong materialHash = material.hash & 0x0FFFFFFFFFFFFFFF;
             MaterialNode materialNode = new MaterialNode($"xmaterial_{materialHash:X}", "pbr");
             mesh.AddValue("m", materialNode.Hash);
 
@@ -152,21 +183,19 @@ namespace DotnesktRemastered.Games
 
             for (int j = 0; j < gfxSurface.vertexCount; j++)
             {
-                ulong packedPosition = Cordycep.ReadMemory<ulong>(xyzPtr);
+                ulong packedPosition = Cordycep.ReadMemory<ulong>(xyzPtr + j * 8);
                 Vector3 position = new Vector3(
                     ((((packedPosition >> 0) & 0x1FFFFF) * worldDrawOffset.scale) + worldDrawOffset.x),
                     ((((packedPosition >> 21) & 0x1FFFFF) * worldDrawOffset.scale) + worldDrawOffset.y),
                     ((((packedPosition >> 42) & 0x1FFFFF) * worldDrawOffset.scale) + worldDrawOffset.z));
 
                 positions.Add(position);
-                xyzPtr += 8;
 
-                uint packedTangentFrame = Cordycep.ReadMemory<uint>(tangentFramePtr);
+                uint packedTangentFrame = Cordycep.ReadMemory<uint>(tangentFramePtr + j * 4);
 
                 Vector3 normal = NormalUnpacking.UnpackCoDQTangent(packedTangentFrame);
 
                 normals.Add(normal);
-                tangentFramePtr += 4;
 
                 Vector2 uv = Cordycep.ReadMemory<Vector2>(texCoordPtr);
                 uvs.Add(uv);
@@ -187,9 +216,8 @@ namespace DotnesktRemastered.Games
                 nint colorPtr = (nint)(zone.drawVerts.posSize + ugbSurfData.colorOffset);
                 for (int j = 0; j < gfxSurface.vertexCount; j++)
                 {
-                    uint color = Cordycep.ReadMemory<uint>(colorPtr);
+                    uint color = Cordycep.ReadMemory<uint>(colorPtr + j * 4);
                     colors.Add(color);
-                    colorPtr += 4;
                 }
             }
 
@@ -216,6 +244,73 @@ namespace DotnesktRemastered.Games
                 material = materialNode,
                 textures = PopulateMaterial(material)
             };
+        }
+
+        private static unsafe XModelMeshData[] ReadXModelMeshes(MW6XModel xmodel, nint shared, bool isLocal = false)
+        {
+            MW6XModelLodInfo lodInfo = Cordycep.ReadMemory<MW6XModelLodInfo>(xmodel.lodInfo);
+            MW6XModelSurfs xmodelSurfs = Cordycep.ReadMemory<MW6XModelSurfs>(lodInfo.modelSurfsStaging);
+            XModelMeshData[] meshes = new XModelMeshData[xmodelSurfs.numsurfs];
+
+            for (int i = 0; i < lodInfo.numsurfs; i++)
+            {
+                MW6XSurface surface = Cordycep.ReadMemory<MW6XSurface>((nint)xmodelSurfs.surfs + i * sizeof(MW6XSurface));
+                MW6Material material = Cordycep.ReadMemory<MW6Material>(Cordycep.ReadMemory<nint>(xmodel.materialHandles + i * 8));
+
+                XModelMeshData mesh = new XModelMeshData() {
+                    positions = new(),
+                    normals = new(),
+                    uv = new(),
+                    secondUv = new(),
+                    faces = new()
+                };
+
+                ulong materialHash = material.hash & 0x0FFFFFFFFFFFFFFF;
+                MaterialNode materialNode = new MaterialNode($"xmaterial_{materialHash:X}", "pbr");
+                mesh.material = materialNode;
+                mesh.textures = PopulateMaterial(material);
+
+                nint xyzPtr = (nint)(shared + surface.xyzOffset);
+                nint tangentFramePtr = (nint)(shared + surface.tangentFrameOffset);
+                nint texCoordPtr = (nint)(shared + surface.texCoordOffset);
+
+                float scale = surface.overrideScale != -1 ? surface.overrideScale : Math.Max(Math.Max(surface.min, surface.scale), surface.max);
+                Vector3 offset = surface.overrideScale != -1 ? Vector3.Zero : surface.offsets;
+                for (int j = 0; j < surface.vertCount; j++)
+                {
+                    ulong packedPosition = Cordycep.ReadMemory<ulong>(xyzPtr + j * 8, isLocal);
+                    Vector3 position = new Vector3(
+                        (((((packedPosition >> 00) & 0x1FFFFF) * ((1.0f / 0x1FFFFF) * 2.0f)) - 1.0f) * scale) + offset.X,
+                        (((((packedPosition >> 21) & 0x1FFFFF) * ((1.0f / 0x1FFFFF) * 2.0f)) - 1.0f) * scale) + offset.Y,
+                        (((((packedPosition >> 42) & 0x1FFFFF) * ((1.0f / 0x1FFFFF) * 2.0f)) - 1.0f) * scale) + offset.Z);
+
+                    mesh.positions.Add(position);
+
+                    uint packedTangentFrame = Cordycep.ReadMemory<uint>(tangentFramePtr + j * 4, isLocal);
+                    Vector3 normal = NormalUnpacking.UnpackCoDQTangent(packedTangentFrame);
+
+                    mesh.normals.Add(normal);
+
+                    float uvu = ((float)BitConverter.UInt16BitsToHalf(Cordycep.ReadMemory<ushort>(texCoordPtr + j * 4, isLocal)));
+                    float uvv = ((float)BitConverter.UInt16BitsToHalf(Cordycep.ReadMemory<ushort>(texCoordPtr + j * 4 + 2, isLocal)));
+
+                    mesh.uv.Add(new Vector2(uvu, uvv));
+                }
+
+                nint tableOffsetPtr = shared + (nint)surface.packedIndiciesTableOffset;
+                nint indicesPtr = shared + (nint)surface.indexDataOffset;
+                nint packedIndicies = shared + (nint)surface.packedIndicesOffset;
+
+                for (int j = 0; j < surface.triCount; j++)
+                {
+                    ushort[] faces = MW6FaceIndices.UnpackFaceIndices(tableOffsetPtr, surface.packedIndiciesTableCount, packedIndicies, indicesPtr, (uint)j, isLocal);
+                    mesh.faces.Add(new Face() { a = faces[0], b = faces[1], c = faces[2] });
+                }
+
+                meshes[i] = mesh;
+            }
+
+            return meshes;
         }
     }
 }
