@@ -114,31 +114,13 @@ namespace DotnesktRemastered.Games
                 {
                     MW6GfxSModelInstanceData instanceData = Cordycep.ReadMemory<MW6GfxSModelInstanceData>((nint)smodels.instanceData + instanceId * sizeof(MW6GfxSModelInstanceData));
 
-                   // Log.Information("Raw instance data: {instanceData}", BitConverter.ToString(Cordycep.ReadRawMemory((nint)smodels.instanceData + instanceId * sizeof(MW6GfxSModelInstanceData), 24)).Replace("-", ""));
+                    Log.Information("Raw instance data: {instanceData}", BitConverter.ToString(Cordycep.ReadRawMemory((nint)smodels.instanceData + instanceId * sizeof(MW6GfxSModelInstanceData), 24)).Replace("-", ""));
                     Vector3 translation = new Vector3(
                         (float)instanceData.translation[0] * 0.000244140625f,
                         (float)instanceData.translation[1] * 0.000244140625f,
                         (float)instanceData.translation[2] * 0.000244140625f
                     );
 
-                    /*
-                     * tf
-                    float scaleUint;
-
-                    var v23 = (instanceData.packedScale & 0xFFFF8000) << 16;
-                    var v24 = instanceData.packedScale & 0x3FF;
-                    var result = (instanceData.packedScale >> 10) & 31;
-
-                    if (result != 0)
-                    {
-                        result = v23 | (v24 << 13) | ((result << 23) + 0x38000000);
-                        scaleUint = result;
-                    }
-                    else
-                    {
-                        scaleUint = v23 | 0x38800000;
-                    }
-                    */
                     Quaternion rotation = new Quaternion(
                         Math.Min(Math.Max((float)((float)instanceData.orientation[0] * 0.000030518044f) - 1.0f, -1.0f), 1.0f),
                         Math.Min(Math.Max((float)((float)instanceData.orientation[1] * 0.000030518044f) - 1.0f, -1.0f), 1.0f),
@@ -146,7 +128,11 @@ namespace DotnesktRemastered.Games
                         Math.Min(Math.Max((float)((float)instanceData.orientation[3] * 0.000030518044f) - 1.0f, -1.0f), 1.0f)
                     );
 
-                    Matrix4x4 transformation = Matrix4x4.CreateScale(xmodel.scale) * Matrix4x4.CreateFromQuaternion(rotation) * Matrix4x4.CreateTranslation(translation);
+                    float scale = (float)BitConverter.UInt16BitsToHalf(instanceData.halfFloatScale);
+
+                    Log.Information("Translation: {translation}, Rotation: {rotation}, Scale: {scale}", translation, rotation, scale);
+
+                    Matrix4x4 transformation = Matrix4x4.CreateScale(scale) * Matrix4x4.CreateFromQuaternion(rotation) * Matrix4x4.CreateTranslation(translation);
 
                     foreach (var xmodelMesh in xmodelMeshes)
                     {

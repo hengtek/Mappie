@@ -230,7 +230,7 @@ namespace DotnesktRemastered.Structures
     {
         public fixed int translation[3];
         public fixed ushort orientation[4];
-        public uint packedScale;
+        public ushort halfFloatScale;
     }
 
     [StructLayout(LayoutKind.Explicit, Size = 64)]
