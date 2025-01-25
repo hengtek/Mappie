@@ -38,6 +38,12 @@ namespace DotnesktRemastered.Games
 
         private static unsafe void DumpMap(MW6GfxWorld gfxWorld, string baseName)
         {
+
+            ModelNode model = new ModelNode();
+            SkeletonNode skeleton = new SkeletonNode();
+            model.AddString("n", $"{baseName}_base_mesh");
+            model.AddNode(skeleton);
+
             MW6GfxWorldTransientZone[] transientZone = new MW6GfxWorldTransientZone[gfxWorld.transientZoneCount];
             for (int i = 0; i < gfxWorld.transientZoneCount; i++)
             {
@@ -55,6 +61,9 @@ namespace DotnesktRemastered.Games
                 MW6Material material = Cordycep.ReadMemory<MW6Material>(materialPtr);
 
                 MeshData mesh = ReadMesh(gfxSurface, ugbSurfData, material, zone);
+
+                model.AddNode(mesh.mesh);
+                model.AddNode(mesh.material);
 
                 meshes[i] = mesh;
             }
@@ -92,20 +101,44 @@ namespace DotnesktRemastered.Games
                         xmodelMeshes = ReadXModelMeshes(xmodel, shared.data, false);
                     }
                     models[xmodel.hash] = xmodelMeshes;
+                    //pre register xmodel materials
+                    foreach (var xmodelMesh in xmodelMeshes)
+                    {
+                        model.AddNode(xmodelMesh.material);
+                    }
                 }
 
                 string xmodelName = Cordycep.ReadString(xmodel.name);
                 int instanceId = (int)collection.firstInstance;
                 while (instanceId < collection.firstInstance + collection.instanceCount)
                 {
-                    MW6GfxSModelInstanceData instanceData = Cordycep.ReadMemory<MW6GfxSModelInstanceData>((nint)smodels.instanceData + instanceId * 24);
-                    
+                    MW6GfxSModelInstanceData instanceData = Cordycep.ReadMemory<MW6GfxSModelInstanceData>((nint)smodels.instanceData + instanceId * sizeof(MW6GfxSModelInstanceData));
+
+                   // Log.Information("Raw instance data: {instanceData}", BitConverter.ToString(Cordycep.ReadRawMemory((nint)smodels.instanceData + instanceId * sizeof(MW6GfxSModelInstanceData), 24)).Replace("-", ""));
                     Vector3 translation = new Vector3(
                         (float)instanceData.translation[0] * 0.000244140625f,
                         (float)instanceData.translation[1] * 0.000244140625f,
                         (float)instanceData.translation[2] * 0.000244140625f
                     );
 
+                    /*
+                     * tf
+                    float scaleUint;
+
+                    var v23 = (instanceData.packedScale & 0xFFFF8000) << 16;
+                    var v24 = instanceData.packedScale & 0x3FF;
+                    var result = (instanceData.packedScale >> 10) & 31;
+
+                    if (result != 0)
+                    {
+                        result = v23 | (v24 << 13) | ((result << 23) + 0x38000000);
+                        scaleUint = result;
+                    }
+                    else
+                    {
+                        scaleUint = v23 | 0x38800000;
+                    }
+                    */
                     Quaternion rotation = new Quaternion(
                         Math.Min(Math.Max((float)((float)instanceData.orientation[0] * 0.000030518044f) - 1.0f, -1.0f), 1.0f),
                         Math.Min(Math.Max((float)((float)instanceData.orientation[1] * 0.000030518044f) - 1.0f, -1.0f), 1.0f),
@@ -113,25 +146,42 @@ namespace DotnesktRemastered.Games
                         Math.Min(Math.Max((float)((float)instanceData.orientation[3] * 0.000030518044f) - 1.0f, -1.0f), 1.0f)
                     );
 
+                    Matrix4x4 transformation = Matrix4x4.CreateScale(xmodel.scale) * Matrix4x4.CreateFromQuaternion(rotation) * Matrix4x4.CreateTranslation(translation);
+
+                    foreach (var xmodelMesh in xmodelMeshes)
+                    {
+                        MeshNode meshNode = new MeshNode();
+                        meshNode.AddValue("m", xmodelMesh.material.Hash);
+                        CastArrayProperty<Vector3> positions = meshNode.AddArray<Vector3>("vp", new(xmodelMesh.positions.Count));
+                        CastArrayProperty<Vector3> normals = meshNode.AddArray<Vector3>("vn", new(xmodelMesh.normals.Count));
+                        CastArrayProperty<Vector2> uvs = meshNode.AddArray<Vector2>($"u0", xmodelMesh.uv);
+
+                        foreach (var position in xmodelMesh.positions)
+                        {
+                            positions.Add(Vector3.Transform(position, transformation));
+                        }
+
+                        foreach (var normal in xmodelMesh.normals)
+                        {
+                            normals.Add(Vector3.TransformNormal(normal, transformation));
+                        }
+
+                        CastArrayProperty<ushort> f =meshNode.AddArray<ushort>("f", new(xmodelMesh.faces.Count));
+                        foreach (var face in xmodelMesh.faces)
+                        {
+                            f.Add(face.c);
+                            f.Add(face.b);
+                            f.Add(face.a);
+                        }
+
+                        model.AddNode(meshNode);
+                    }
                     instanceId++;
                 }
-            }
-
-            //Write to file
-            /*
-            ModelNode model = new ModelNode();
-            SkeletonNode skeleton = new SkeletonNode();
-            model.AddString("n", $"{baseName}_base_mesh");
-            model.AddNode(skeleton);
-            foreach (MeshData mesh in meshes)
-            {
-                model.AddNode(mesh.mesh);
-                model.AddNode(mesh.material);
             }
             CastNode root = new CastNode(CastNodeIdentifier.Root);
             root.AddNode(model);
             CastWriter.Save(@"D:/" + baseName + ".cast", root);
-            */
         }
 
         private static unsafe List<TextureSemanticData> PopulateMaterial(MW6Material material)

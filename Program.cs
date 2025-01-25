@@ -16,6 +16,7 @@ namespace DotnesktRemastered
         static unsafe void Main(string[] args)
         {
             //Logging
+            Console.WriteLine(BitConverter.ToString(BitConverter.GetBytes(0.000030518044f)));
             Log.Logger = new LoggerConfiguration()
                 .WriteTo.Console()
                 .CreateLogger();
@@ -40,7 +41,6 @@ namespace DotnesktRemastered
                 case "YAMYAMOK":
                     //Cordycep should've join this but nooo it doesnt.
                     XSub.LoadFiles(Cordycep.GameDirectory);
-                    XSub.ExtractXSubPackage(1484292732661252905, 0);
                     ModernWarfare6.DumpMap("mp_jup_shipment_xmas");
                     break;
                 default:

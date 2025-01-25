@@ -225,12 +225,12 @@ namespace DotnesktRemastered.Structures
         public byte pad;
     };
 
-    [StructLayout(LayoutKind.Sequential, Size = 16)]
+    [StructLayout(LayoutKind.Sequential, Size = 24)]
     public unsafe struct MW6GfxSModelInstanceData
     {
         public fixed int translation[3];
         public fixed ushort orientation[4];
-        public float scale;
+        public uint packedScale;
     }
 
     [StructLayout(LayoutKind.Explicit, Size = 64)]
@@ -248,6 +248,8 @@ namespace DotnesktRemastered.Structures
         public nint name;
         [FieldOffset(16)]
         public ushort numSurfs;
+        [FieldOffset(40)]
+        public float scale;
         [FieldOffset(144)]
         public nint materialHandles;
         [FieldOffset(152)]
@@ -326,13 +328,13 @@ namespace DotnesktRemastered.Structures
         public uint secondUVOffset;
         [FieldOffset(120)]
         public nint shared;
-        [FieldOffset(168)]
+        [FieldOffset(176)]
         public Vector3 offsets;
-        [FieldOffset(180)]
-        public float scale;
-        [FieldOffset(184)]
-        public float min;
         [FieldOffset(188)]
+        public float scale;
+        [FieldOffset(192)]
+        public float min;
+        [FieldOffset(196)]
         public float max;
     }
 }
