@@ -16,7 +16,7 @@ namespace DotnesktRemastered.Structures
         [FieldOffset(4)]
         public uint baseIndex;
         [FieldOffset(8)]
-        public uint tableOffset;
+        public uint tableIndex;
         [FieldOffset(12)]
         public uint ugbSurfDataIndex;
         [FieldOffset(16)]
@@ -112,7 +112,7 @@ namespace DotnesktRemastered.Structures
     [StructLayout(LayoutKind.Explicit, Size = 48)]
     public unsafe struct MW6GfxWorldDrawVerts
     {
-        [FieldOffset(3)]
+        [FieldOffset(0)]
         public uint posSize;
         [FieldOffset(4)]
         public uint indexCount;

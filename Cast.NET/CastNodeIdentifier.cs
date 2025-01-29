@@ -93,5 +93,10 @@ namespace Cast.NET
         /// A node that contains a <see cref="FileNode"/>.
         /// </summary>
         File                = 0x656C6966,
+
+        /// <summary>
+        /// A node that contains a <see cref="InstanceNode"/>.
+        /// </summary>
+        Instance            = 0x74736E69,
     };
 }

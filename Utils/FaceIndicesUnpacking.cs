@@ -7,12 +7,12 @@ using System.Threading.Tasks;
 
 namespace DotnesktRemastered.Utils
 {
-    public class MW6FaceIndices
+    public class FaceIndicesUnpacking
     {
         public static CordycepProcess Cordycep = Program.Cordycep;
 
         //Ref: https://github.com/Scobalula/Greyhound/blob/master/src/WraithXCOD/WraithXCOD/CoDXModelMeshHelper.cpp#L37
-        public static ushort[] UnpackFaceIndices(nint tables, nint tableCount, nint packedIndices, nint indices, uint faceIndex, bool isLocal = false)
+        public static ushort[] UnpackFaceIndices(nint tables, uint tableCount, nint packedIndices, nint indices, uint faceIndex, bool isLocal = false)
         {
             uint currentFaceIndex = faceIndex;
             for (int i = 0; i < tableCount; i++)
@@ -25,6 +25,34 @@ namespace DotnesktRemastered.Utils
                     ushort[] faceIndices = new ushort[3];
                     byte bits = (byte)(Cordycep.ReadMemory<byte>(tablePtr + 34, isLocal) - 1);
                     faceIndex = Cordycep.ReadMemory<uint>(tablePtr + 28, isLocal);
+
+                    uint faceIndex1Offset = FindFaceIndex(tableIndicesPtr, currentFaceIndex * 3 + 0, bits, isLocal) + faceIndex;
+                    uint faceIndex2Offset = FindFaceIndex(tableIndicesPtr, currentFaceIndex * 3 + 1, bits, isLocal) + faceIndex;
+                    uint faceIndex3Offset = FindFaceIndex(tableIndicesPtr, currentFaceIndex * 3 + 2, bits, isLocal) + faceIndex;
+
+                    faceIndices[0] = Cordycep.ReadMemory<ushort>(indices + (nint)(faceIndex1Offset * 2), isLocal);
+                    faceIndices[1] = Cordycep.ReadMemory<ushort>(indices + (nint)(faceIndex2Offset * 2), isLocal);
+                    faceIndices[2] = Cordycep.ReadMemory<ushort>(indices + (nint)(faceIndex3Offset * 2), isLocal);
+                    return faceIndices;
+                }
+                currentFaceIndex -= count;
+            }
+            return null;
+        }
+
+        public static ushort[] UnpackFaceIndicesEx(nint tables, uint tableCount, nint packedIndices, nint indices, uint faceIndex, bool isLocal = false)
+        {
+            uint currentFaceIndex = faceIndex;
+            for (int i = 0; i < tableCount; i++)
+            {
+                nint tablePtr = tables + (i * 28);
+                nint tableIndicesPtr = packedIndices + (nint)Cordycep.ReadMemory<uint>(tablePtr + 24, isLocal);
+                byte count = (byte)(Cordycep.ReadMemory<byte>(tablePtr + 19, isLocal) + 1);
+                if (currentFaceIndex < count)
+                {
+                    ushort[] faceIndices = new ushort[3];
+                    byte bits = Cordycep.ReadMemory<byte>(tablePtr + 23, isLocal);
+                    faceIndex = Cordycep.ReadMemory<uint>(tablePtr + 20, isLocal) & 0xFFFFFF;
 
                     uint faceIndex1Offset = FindFaceIndex(tableIndicesPtr, currentFaceIndex * 3 + 0, bits, isLocal) + faceIndex;
                     uint faceIndex2Offset = FindFaceIndex(tableIndicesPtr, currentFaceIndex * 3 + 1, bits, isLocal) + faceIndex;

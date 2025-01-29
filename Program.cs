@@ -16,7 +16,6 @@ namespace DotnesktRemastered
         static unsafe void Main(string[] args)
         {
             //Logging
-            Console.WriteLine(BitConverter.ToString(BitConverter.GetBytes(0.000030518044f)));
             Log.Logger = new LoggerConfiguration()
                 .WriteTo.Console()
                 .CreateLogger();
@@ -39,13 +38,18 @@ namespace DotnesktRemastered
             switch (gameId)
             {
                 case "YAMYAMOK":
-                    //Cordycep should've join this but nooo it doesnt.                    
+                    //Cordycep should've join this but nooo it doesnt.
                     XSub.LoadFiles(Cordycep.GameDirectory);
 
                     ModernWarfare6.DumpMap("mp_jup_shipment_xmas");
                     break;
+                case "BLACKOP6":
+                    XSub.LoadFiles(Cordycep.GameDirectory);
+
+                    BlackOps6.DumpMap("mp_t10_winners_circle");
+                    break;
                 default:
-                    Log.Error("Game is not supported :(.");
+                    Log.Error("Game is not supported. :(");
                     return;
             }
         }

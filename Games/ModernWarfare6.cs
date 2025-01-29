@@ -260,7 +260,7 @@ namespace DotnesktRemastered.Games
             //unpack da fucking faces 
             //References: https://github.com/Scobalula/Greyhound/blob/master/src/WraithXCOD/WraithXCOD/CoDXModelMeshHelper.cpp#L37
 
-            nint tableOffsetPtr = zone.drawVerts.tableData + (nint)(gfxSurface.tableOffset * 40);
+            nint tableOffsetPtr = zone.drawVerts.tableData + (nint)(gfxSurface.tableIndex * 40);
             nint indicesPtr = zone.drawVerts.indices + (nint)(gfxSurface.baseIndex * 2);
             nint packedIndicies = zone.drawVerts.packedIndices + (nint)gfxSurface.packedIndicesOffset;
 
@@ -268,7 +268,7 @@ namespace DotnesktRemastered.Games
 
             for (int j = 0; j < gfxSurface.triCount; j++)
             {
-                ushort[] faces = MW6FaceIndices.UnpackFaceIndices(tableOffsetPtr, gfxSurface.packedIndiciesTableCount, packedIndicies, indicesPtr, (uint)j);
+                ushort[] faces = FaceIndicesUnpacking.UnpackFaceIndices(tableOffsetPtr, gfxSurface.packedIndiciesTableCount, packedIndicies, indicesPtr, (uint)j);
                 faceIndices.Add(faces[2]);
                 faceIndices.Add(faces[1]);
                 faceIndices.Add(faces[0]);
@@ -339,7 +339,7 @@ namespace DotnesktRemastered.Games
 
                 for (int j = 0; j < surface.triCount; j++)
                 {
-                    ushort[] faces = MW6FaceIndices.UnpackFaceIndices(tableOffsetPtr, surface.packedIndiciesTableCount, packedIndicies, indicesPtr, (uint)j, isLocal);
+                    ushort[] faces = FaceIndicesUnpacking.UnpackFaceIndices(tableOffsetPtr, surface.packedIndiciesTableCount, packedIndicies, indicesPtr, (uint)j, isLocal);
                     mesh.faces.Add(new Face() { a = faces[0], b = faces[1], c = faces[2] });
                 }
 
