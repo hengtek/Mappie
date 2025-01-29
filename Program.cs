@@ -41,7 +41,7 @@ namespace DotnesktRemastered
                     //Cordycep should've join this but nooo it doesnt.
                     XSub.LoadFiles(Cordycep.GameDirectory);
 
-                    ModernWarfare6.DumpMap("mp_jup_shipment_xmas");
+                    ModernWarfare6.DumpMap("mp_frontend_jup_01");
                     break;
                 case "BLACKOP6":
                     XSub.LoadFiles(Cordycep.GameDirectory);

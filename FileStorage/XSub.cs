@@ -29,7 +29,6 @@ namespace DotnesktRemastered.FileStorage
         public static void LoadFiles(string gamePath)
         {
             string[] files = System.IO.Directory.GetFiles(gamePath, "*.xsub", SearchOption.AllDirectories);
-            Console.WriteLine($"Found {files.Length} XSUB files.");
             foreach (string file in files)
             {
                 BinaryReader reader = new BinaryReader(File.Open(file, FileMode.Open));

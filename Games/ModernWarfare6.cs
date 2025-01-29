@@ -20,6 +20,7 @@ namespace DotnesktRemastered.Games
         private static uint GFXMAP_POOL_IDX = 50;
 
         private static Dictionary<ulong, XModelMeshData[]> models = new Dictionary<ulong, XModelMeshData[]>();
+
         public static void DumpMap(string name)
         {
             Log.Information("Finding map {baseName}...", name);
@@ -114,7 +115,6 @@ namespace DotnesktRemastered.Games
                 {
                     MW6GfxSModelInstanceData instanceData = Cordycep.ReadMemory<MW6GfxSModelInstanceData>((nint)smodels.instanceData + instanceId * sizeof(MW6GfxSModelInstanceData));
 
-                    Log.Information("Raw instance data: {instanceData}", BitConverter.ToString(Cordycep.ReadRawMemory((nint)smodels.instanceData + instanceId * sizeof(MW6GfxSModelInstanceData), 24)).Replace("-", ""));
                     Vector3 translation = new Vector3(
                         (float)instanceData.translation[0] * 0.000244140625f,
                         (float)instanceData.translation[1] * 0.000244140625f,
@@ -129,8 +129,6 @@ namespace DotnesktRemastered.Games
                     );
 
                     float scale = (float)BitConverter.UInt16BitsToHalf(instanceData.halfFloatScale);
-
-                    Log.Information("Translation: {translation}, Rotation: {rotation}, Scale: {scale}", translation, rotation, scale);
 
                     Matrix4x4 transformation = Matrix4x4.CreateScale(scale) * Matrix4x4.CreateFromQuaternion(rotation) * Matrix4x4.CreateTranslation(translation);
 
@@ -187,6 +185,22 @@ namespace DotnesktRemastered.Games
                 MW6GfxImage image = images[textureDef.imageIdx];
 
                 int uvMapIndex = 0;
+
+                ulong hash = image.hash & 0x0FFFFFFFFFFFFFFF;
+
+                if (hash == 0xa882744bc523875 ||
+                    hash == 0xc29eeff15212c37 ||
+                    hash == 0x8fd10a77ef7cceb ||
+                    hash == 0x29f08617872fbdd ||
+                    hash == 0xcd365ba04eb6b) continue; //pretty sure its prob a null texture lol
+
+                string imageName = $"ximage_{hash:X}".ToLower();
+
+                //instead of using actual semantic value, we can guess them base on the texture index, hf
+
+                if (Enum.IsDefined(typeof(MW6TextureIdxTable), (int)textureDef.index)) continue;
+
+                Log.Information("Texture {textureDef.index} is {name}", textureDef.index, imageName); 
             }
             return null;
         }

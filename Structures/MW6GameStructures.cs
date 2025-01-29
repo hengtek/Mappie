@@ -236,7 +236,8 @@ namespace DotnesktRemastered.Structures
     [StructLayout(LayoutKind.Explicit, Size = 64)]
     public unsafe struct MW6GfxImage
     {
-
+        [FieldOffset(0)]
+        public ulong hash;
     }
 
     [StructLayout(LayoutKind.Explicit, Size = 232)]
@@ -336,6 +337,19 @@ namespace DotnesktRemastered.Structures
         public float min;
         [FieldOffset(196)]
         public float max;
+    }
+
+    public enum MW6TextureIdxTable
+    {
+        COLOR_MAP = 0,
+        COLOR_MAP_UV_1 = 1,
+        COLOR_MAP_UV_2 = 2,
+        COLOR_MAP_UV_3 = 3,
+        NOG_MAP = 4,
+        NOG_MAP_UV_1 = 5,
+        NOG_MAP_UV_2 = 6,
+        NOG_MAP_UV_3 = 7,
+        SKYBOX = 74
     }
 }
 
