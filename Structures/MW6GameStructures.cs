@@ -349,7 +349,11 @@ namespace DotnesktRemastered.Structures
         NOG_MAP_UV_1 = 5,
         NOG_MAP_UV_2 = 6,
         NOG_MAP_UV_3 = 7,
-        SKYBOX = 74
+        UNKNOWN_8 = 8,
+        UNKNOWN_12 = 12,
+        UNKNOWN_16 = 16,
+        UNKNOWN_30 = 30,
+        SKYBOX = 74,
     }
 }
 

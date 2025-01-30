@@ -179,6 +179,8 @@ namespace DotnesktRemastered.Games
                 images[i] = image;
             }
 
+            List<TextureSemanticData> textures = new List<TextureSemanticData>();
+
             for (int i = 0; i < material.textureCount; i++)
             {
                 MW6MaterialTextureDef textureDef = Cordycep.ReadMemory<MW6MaterialTextureDef>(material.textureTable + i * sizeof(MW6MaterialTextureDef));
@@ -198,9 +200,21 @@ namespace DotnesktRemastered.Games
 
                 //instead of using actual semantic value, we can guess them base on the texture index, hf
 
-                if (Enum.IsDefined(typeof(MW6TextureIdxTable), (int)textureDef.index)) continue;
+                string textureSemantic;
+                if (!Enum.IsDefined(typeof(MW6TextureIdxTable), (int)textureDef.index))
+                {
+                    textureSemantic = $"unknown_texture_{textureDef.index}";
+                }
+                else
+                {
+                    textureSemantic = ((MW6TextureIdxTable)textureDef.index).ToString().ToLower();
+                }
 
-                Log.Information("Texture {textureDef.index} is {name}", textureDef.index, imageName); 
+                textures.Add(new()
+                {
+                    semantic = textureSemantic,
+                    texture = imageName
+                });
             }
             return null;
         }
@@ -312,7 +326,8 @@ namespace DotnesktRemastered.Games
                     normals = new(),
                     uv = new(),
                     secondUv = new(),
-                    faces = new()
+                    faces = new(),
+                    colorVertex = new()
                 };
 
                 ulong materialHash = material.hash & 0x0FFFFFFFFFFFFFFF;
@@ -345,6 +360,28 @@ namespace DotnesktRemastered.Games
                     float uvv = ((float)BitConverter.UInt16BitsToHalf(Cordycep.ReadMemory<ushort>(texCoordPtr + j * 4 + 2, isLocal)));
 
                     mesh.uv.Add(new Vector2(uvu, uvv));
+                }
+
+
+                if (surface.colorOffset != 0xFFFFFFFF)
+                {
+                    nint colorPtr = shared + (nint)surface.colorOffset;
+                    for (int j = 0; j < surface.vertCount; j++)
+                    {
+                        uint color = Cordycep.ReadMemory<uint>(colorPtr + j * 4, isLocal);
+                        mesh.colorVertex.Add(color);
+                    }
+                }
+
+                if(surface.secondUVOffset != 0xFFFFFFFF)
+                {
+                    nint texCoord2Ptr = shared + (nint)surface.secondUVOffset;
+                    for (int j = 0; j < surface.vertCount; j++)
+                    {
+                        float uvu = ((float)BitConverter.UInt16BitsToHalf(Cordycep.ReadMemory<ushort>(texCoord2Ptr + j * 4, isLocal)));
+                        float uvv = ((float)BitConverter.UInt16BitsToHalf(Cordycep.ReadMemory<ushort>(texCoord2Ptr + j * 4 + 2, isLocal)));
+                        mesh.secondUv.Add(new Vector2(uvu, uvv));
+                    }
                 }
 
                 nint tableOffsetPtr = shared + (nint)surface.packedIndiciesTableOffset;

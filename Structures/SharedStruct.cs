@@ -18,7 +18,6 @@ namespace DotnesktRemastered.Structures
     public struct TextureSemanticData
     {
         public string semantic;
-        public byte uvLayer;
         public string texture;
     }
 
