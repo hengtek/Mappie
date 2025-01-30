@@ -99,32 +99,32 @@ namespace DotnesktRemastered.Structures
         [FieldOffset(160)]
         public nint materials;
         [FieldOffset(192)]
-        public nint ugbSurfData;
+        public nint ugbSurfData; // bufSize = ugbSurfDataCount << 7;
         [FieldOffset(200)]
         public nint worldDrawOffsets;
         [FieldOffset(320)]
         public uint btndSurfacesCount;
         [FieldOffset(328)]
-        public nint btndSurfaces;
+        public nint btndSurfaces; // bufSize = 36 * btndSurfacesCount;
     }
 
     [StructLayout(LayoutKind.Explicit, Size = 56)]
     public unsafe struct BO6GfxWorldDrawVerts
     {
         [FieldOffset(0)]
-        public uint posDataSize; // bufSize = (posDataSize + 3) & 0xFFFFFFFC;
+        public uint posDataSize;
         [FieldOffset(4)]
-        public uint indexCount; // bufSize = 2 * ((indexCount + 1) & 0xFFFFFFFE);
+        public uint indexCount;
         [FieldOffset(8)]
-        public uint tableCount; // bufSize = 28 * tableCount;
+        public uint tableCount;
         [FieldOffset(16)]
         public uint packedIndicesSize;
         [FieldOffset(24)]
-        public nint posData;
+        public nint posData; // bufSize = (posDataSize + 3) & 0xFFFFFFFC;
         [FieldOffset(32)]
-        public nint indices;
+        public nint indices; // bufSize = 2 * ((indexCount + 1) & 0xFFFFFFFE);
         [FieldOffset(40)]
-        public nint tableData;
+        public nint tableData; // bufSize = 28 * tableCount;
         [FieldOffset(48)]
         public nint packedIndices;
     }
@@ -140,7 +140,7 @@ namespace DotnesktRemastered.Structures
         public BO6GfxWorldDrawVerts drawVerts;
     }
 
-    [StructLayout(LayoutKind.Explicit/*, Size = 20720*/)] // 20720
+    [StructLayout(LayoutKind.Explicit)] // 20720
     public unsafe struct BO6GfxWorldStaticModels
     {
         [FieldOffset(4)]
@@ -188,20 +188,20 @@ namespace DotnesktRemastered.Structures
         public ushort halfFloatScale;
     }
 
-    [StructLayout(LayoutKind.Explicit)] // 40512
+    [StructLayout(LayoutKind.Explicit)] // 40496
     public unsafe struct BO6GfxWorld
     {
         [FieldOffset(0)]
         public ulong hash;
         [FieldOffset(8)]
         public nint baseName;
-        [FieldOffset(200)]
+        [FieldOffset(216)]
         public BO6GfxWorldSurfaces surfaces;
-        [FieldOffset(592)]
+        [FieldOffset(608)]
         public BO6GfxWorldStaticModels smodels;
-        [FieldOffset(27580)]
+        [FieldOffset(27508)]
         public uint transientZoneCount;
-        [FieldOffset(27584)]
+        [FieldOffset(27512)]
         public fixed ulong transientZones[1536];
     }
 
