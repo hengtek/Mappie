@@ -6,6 +6,7 @@ using DotnesktRemastered.Utils;
 using Serilog;
 using System;
 using System.Buffers.Binary;
+using System.Diagnostics;
 using System.Numerics;
 using System.Runtime.InteropServices;
 using System.Text;
@@ -20,7 +21,6 @@ namespace DotnesktRemastered.Games
         private static uint GFXMAP_POOL_IDX = 50;
 
         private static Dictionary<ulong, XModelMeshData[]> models = new Dictionary<ulong, XModelMeshData[]>();
-
         public static void DumpMap(string name)
         {
             Log.Information("Finding map {baseName}...", name);
@@ -31,14 +31,17 @@ namespace DotnesktRemastered.Games
                 string baseName = Cordycep.ReadString(gfxWorld.baseName).Trim();
                 if (baseName == name)
                 {
+                    Log.Information("Found map {0}, started dumping... :)", baseName);
                     DumpMap(gfxWorld, baseName);
-                    Log.Information("Found map {baseName}.", baseName);
+                    Log.Information("Dumped map {0}. XD", baseName);
                 }
             });
         }
 
         private static unsafe void DumpMap(MW6GfxWorld gfxWorld, string baseName)
         {
+            //Performance test
+            Stopwatch stopwatch = new Stopwatch();
 
             ModelNode model = new ModelNode();
             SkeletonNode skeleton = new SkeletonNode();
@@ -50,11 +53,16 @@ namespace DotnesktRemastered.Games
             {
                 transientZone[i] = Cordycep.ReadMemory<MW6GfxWorldTransientZone>(gfxWorld.transientZones + i * sizeof(MW6GfxWorldTransientZone));
             }
+
             MW6GfxWorldSurfaces gfxWorldSurfaces = gfxWorld.surfaces;
 
+            Log.Information("Reading {count} surfaces...", gfxWorldSurfaces.count);
+            stopwatch.Start();
             MeshData[] meshes = new MeshData[gfxWorldSurfaces.count];
             for (int i = 0; i < gfxWorldSurfaces.count; i++)
             {
+                Stopwatch surfaceStopwatch = new Stopwatch();
+                surfaceStopwatch.Start();
                 MW6GfxSurface gfxSurface = Cordycep.ReadMemory<MW6GfxSurface>(gfxWorldSurfaces.surfaces + i * sizeof(MW6GfxSurface));
                 MW6GfxUgbSurfData ugbSurfData = Cordycep.ReadMemory<MW6GfxUgbSurfData>(gfxWorldSurfaces.ugbSurfData + (nint)(gfxSurface.ugbSurfDataIndex * sizeof(MW6GfxUgbSurfData)));
                 MW6GfxWorldTransientZone zone = transientZone[ugbSurfData.transientZoneIndex];
@@ -67,8 +75,16 @@ namespace DotnesktRemastered.Games
                 model.AddNode(mesh.material);
 
                 meshes[i] = mesh;
+                surfaceStopwatch.Stop();
+                Log.Information("Read surface {i} in {time} ms.", i, surfaceStopwatch.ElapsedMilliseconds);
             }
+            stopwatch.Stop();
+            Log.Information("Read {count} surfaces in {time} ms.", gfxWorldSurfaces.count, stopwatch.ElapsedMilliseconds);
 
+            stopwatch.Reset();
+            
+            Log.Information("Reading {count} static models...", gfxWorld.smodels.collectionsCount);
+            stopwatch.Start();
             MW6GfxWorldStaticModels smodels = gfxWorld.smodels;
 
             for (int i = 0; i < smodels.collectionsCount; i++)
@@ -78,17 +94,21 @@ namespace DotnesktRemastered.Games
                 MW6GfxWorldTransientZone zone = transientZone[collection.transientGfxWorldPlaced];
                 MW6XModel xmodel = Cordycep.ReadMemory<MW6XModel>(staticModel.xmodel);
 
+                ulong xmodelHash = xmodel.hash & 0x0FFFFFFFFFFFFFFF;
+
                 MW6XModelLodInfo lodInfo = Cordycep.ReadMemory<MW6XModelLodInfo>(xmodel.lodInfo);
                 MW6XModelSurfs xmodelSurfs = Cordycep.ReadMemory<MW6XModelSurfs>(lodInfo.modelSurfsStaging);
                 MW6XSurfaceShared shared = Cordycep.ReadMemory<MW6XSurfaceShared>(xmodelSurfs.shared);
 
                 XModelMeshData[] xmodelMeshes;
-                if (models.ContainsKey(xmodel.hash))
+                if (models.ContainsKey(xmodelHash))
                 {
-                    xmodelMeshes = models[xmodel.hash];
+                    xmodelMeshes = models[xmodelHash];
                 }
                 else
                 {
+                    Stopwatch xmodelStopwatch = new Stopwatch();
+                    xmodelStopwatch.Start();
                     if (shared.data == 0)
                     {
                         byte[] buffer = XSub.ExtractXSubPackage(xmodelSurfs.xpakKey, shared.dataSize);
@@ -101,7 +121,9 @@ namespace DotnesktRemastered.Games
                     {
                         xmodelMeshes = ReadXModelMeshes(xmodel, shared.data, false);
                     }
-                    models[xmodel.hash] = xmodelMeshes;
+                    xmodelStopwatch.Stop();
+                    Log.Information("Read xmodel {xmodel:X} in {time} ms.", xmodelHash, xmodelStopwatch.ElapsedMilliseconds);
+                    models[xmodelHash] = xmodelMeshes;
                     //pre register xmodel materials
                     foreach (var xmodelMesh in xmodelMeshes)
                     {
@@ -150,7 +172,7 @@ namespace DotnesktRemastered.Games
                             normals.Add(Vector3.TransformNormal(normal, transformation));
                         }
 
-                        CastArrayProperty<ushort> f =meshNode.AddArray<ushort>("f", new(xmodelMesh.faces.Count));
+                        CastArrayProperty<ushort> f = meshNode.AddArray<ushort>("f", new(xmodelMesh.faces.Count));
                         foreach (var face in xmodelMesh.faces)
                         {
                             f.Add(face.c);
@@ -163,9 +185,54 @@ namespace DotnesktRemastered.Games
                     instanceId++;
                 }
             }
+            stopwatch.Stop();
+            Log.Information("Read {count} static models in {time} ms.", smodels.collectionsCount, stopwatch.ElapsedMilliseconds);
+
+            stopwatch.Reset();
+            Log.Information("Exporting {baseName}...", baseName);
+            stopwatch.Start();
+            //Exporting cast
+            string outputFolder = Path.Join(Environment.CurrentDirectory, baseName);
+
+            if (!Directory.Exists(outputFolder))
+                Directory.CreateDirectory(outputFolder);
+
             CastNode root = new CastNode(CastNodeIdentifier.Root);
             root.AddNode(model);
-            CastWriter.Save(@"D:/" + baseName + ".cast", root);
+            CastWriter.Save(Path.Join(outputFolder, $"{baseName}.cast"), root);
+
+            //Exporting materials
+            //Base mesh
+            foreach(var mesh in meshes)
+            {
+                string materialName = mesh.material.Name;
+                string materialPath = Path.Join(outputFolder, $"{materialName}_images.txt"); //stay consistent with greyhound naming or atleast try to...
+                File.WriteAllText(materialPath, FormatSemanticData(mesh.textures));
+            }
+
+            foreach (var xmodelMesh in models.Values)
+            {
+                foreach (var mesh in xmodelMesh)
+                {
+                    string materialName = mesh.material.Name;
+                    string materialPath = Path.Join(outputFolder, $"{materialName}_images.txt");
+                    File.WriteAllText(materialPath, FormatSemanticData(mesh.textures));
+                }
+            }
+            stopwatch.Stop();
+            Log.Information("Exported {baseName} in {time} ms.", baseName, stopwatch.ElapsedMilliseconds);
+        }
+
+        private static string FormatSemanticData(List<TextureSemanticData> textures)
+        {
+            StringBuilder sb = new StringBuilder();
+            sb.Append("# semantic, image");
+            foreach (var texture in textures)
+            {
+                sb.AppendLine();
+                sb.Append($"{texture.semantic}, {texture.texture}");
+            }
+            return sb.ToString();
         }
 
         private static unsafe List<TextureSemanticData> PopulateMaterial(MW6Material material)
@@ -216,7 +283,7 @@ namespace DotnesktRemastered.Games
                     texture = imageName
                 });
             }
-            return null;
+            return textures;
         }
 
         private static unsafe MeshData ReadMesh(MW6GfxSurface gfxSurface, MW6GfxUgbSurfData ugbSurfData, MW6Material material,MW6GfxWorldTransientZone zone)

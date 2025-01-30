@@ -2,6 +2,7 @@
 using Serilog;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Drawing;
 using System.IO;
 using System.IO.Pipelines;
@@ -94,6 +95,9 @@ namespace DotnesktRemastered.FileStorage
                 return null;
             }
 
+            Stopwatch stopwatch = new Stopwatch();
+            stopwatch.Start();
+
             PackageCacheObject cacheObject = CacheObjects[key];
             BinaryReader reader = new BinaryReader(File.Open(cacheObject.PackageFilePath, FileMode.Open));
 
@@ -164,6 +168,8 @@ namespace DotnesktRemastered.FileStorage
                 blockPosition = (ulong)((reader.BaseStream.Position + 0x7F) & 0xFFFFFFFFFFFFF80);
             }
             reader.Close();
+            stopwatch.Stop();
+            Log.Information("Decompressed {key:X} in {time}ms", key, stopwatch.ElapsedMilliseconds);
             return tempBuffer;
         }
     }

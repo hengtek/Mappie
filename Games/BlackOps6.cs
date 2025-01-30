@@ -18,8 +18,6 @@ namespace DotnesktRemastered.Games
         public static CordycepProcess Cordycep = Program.Cordycep;
 
         private static uint GFXMAP_POOL_IDX = 43;
-        
-        private static string EXPORT_PATH = "Exported_Maps";
 
         private static Dictionary<ulong, XModelMeshData[]> models = new();
         public static void DumpMap(string name)
@@ -132,7 +130,7 @@ namespace DotnesktRemastered.Games
 
                 string xmodelName = Cordycep.ReadString(xmodel.name);
                 xmodelName = xmodelName.Replace("::", "_"); // TODO: Make strings safer
-                string propModelPath = @$"{EXPORT_PATH}/{mapBaseName}/Props/{xmodelName}.cast";
+                string propModelPath = @$"{Configuration.EXPORT_PATH}/{mapBaseName}/Props/{xmodelName}.cast";
                 CreateDirectoryIfNotExists(Path.GetDirectoryName(propModelPath));
 
                 int lodIdx = -1;
@@ -218,7 +216,7 @@ namespace DotnesktRemastered.Games
                 }
             }
 
-            string rootPath = @$"{EXPORT_PATH}/{mapBaseName}/{mapBaseName}.cast";
+            string rootPath = @$"{Configuration.EXPORT_PATH}/{mapBaseName}/{mapBaseName}.cast";
             CreateDirectoryIfNotExists(Path.GetDirectoryName(rootPath));
             CastWriter.Save(rootPath, mapRoot);
         }
