@@ -11,8 +11,8 @@ namespace DotnesktRemastered.Structures
     [StructLayout(LayoutKind.Explicit, Size = 36)]
     public unsafe struct BO6GfxSurface
     {
-        [FieldOffset(0)]
-        public uint posOffset;
+        // [FieldOffset(0)]
+        // public uint posOffset;
         [FieldOffset(4)]
         public uint baseIndex;
         [FieldOffset(8)]
@@ -49,7 +49,7 @@ namespace DotnesktRemastered.Structures
         [FieldOffset(28)]
         public uint layerCount;
         [FieldOffset(32)]
-        public uint vertexCount;
+        public uint vertexCount; // btndSurf area has this value
         // [FieldOffset(36)]
         // public uint unk2; // no idea ? 
         [FieldOffset(40)]
@@ -62,8 +62,8 @@ namespace DotnesktRemastered.Structures
         public uint colorOffset;
         [FieldOffset(56)]
         public uint texCoordOffset;
-        // [FieldOffset(60)]
-        // public uint unk3;
+        [FieldOffset(60)]
+        public uint unkDataOffset; // Only btndSurf area has this value? (bufPtr = zone.drawVerts.posData + (nint)ugbSurfData.unkDataOffset; bufSize = 8 * vertexCount;)
         // [FieldOffset(64)]
         // public uint accumulatedUnk2; //? this is sum of previous unk2
         // [FieldOffset(68)]
@@ -85,6 +85,7 @@ namespace DotnesktRemastered.Structures
         public float scale;
     }
 
+    // Note: We can get more by "GfxWorldSurfaces::surfaces"
     [StructLayout(LayoutKind.Explicit, Size = 392)]
     public unsafe struct BO6GfxWorldSurfaces
     {
@@ -94,18 +95,26 @@ namespace DotnesktRemastered.Structures
         public uint ugbSurfDataCount;
         [FieldOffset(12)]
         public uint materialCount;
+        [FieldOffset(16)]
+        public uint materialFlagsCount;
         [FieldOffset(120)]
         public nint surfaces;
+        [FieldOffset(136)]
+        public nint surfaceBounds; // bufSize = 24 * count;
         [FieldOffset(160)]
         public nint materials;
+        [FieldOffset(176)]
+        public nint surfaceMaterialFlags; // bufSize = 1 * materialFlagsCount;
         [FieldOffset(192)]
         public nint ugbSurfData; // bufSize = ugbSurfDataCount << 7;
         [FieldOffset(200)]
-        public nint worldDrawOffsets;
+        public nint worldDrawOffsets; // bufSize = 16 * ugbSurfDataCount;
         [FieldOffset(320)]
         public uint btndSurfacesCount;
         [FieldOffset(328)]
         public nint btndSurfaces; // bufSize = 36 * btndSurfacesCount;
+        [FieldOffset(352)]
+        public nint unkPtr0; // bufSize = 4 * btndSurfacesCount;
     }
 
     [StructLayout(LayoutKind.Explicit, Size = 56)]
@@ -140,6 +149,8 @@ namespace DotnesktRemastered.Structures
         public BO6GfxWorldDrawVerts drawVerts;
     }
 
+    // Note: We can get more by "smodelSurfData"
+    // TODO: "splinedModelInstanceData", "splinedDecalInstanceData"
     [StructLayout(LayoutKind.Explicit)] // 20720
     public unsafe struct BO6GfxWorldStaticModels
     {
@@ -156,7 +167,7 @@ namespace DotnesktRemastered.Structures
         [FieldOffset(120)]
         public nint collections;
         [FieldOffset(200)]
-        public nint smodelInstanceData;
+        public nint instanceData;
     }
 
     [StructLayout(LayoutKind.Sequential, Size = 16)]
@@ -304,6 +315,7 @@ namespace DotnesktRemastered.Structures
         public Vector3 halfSize;
     };
 
+    // Note: We can get (XSurfaceSubdivInfo* subdiv;) by "facePoints"
     [StructLayout(LayoutKind.Explicit, Size = 224)]
     public unsafe struct BO6XSurface
     {
@@ -340,4 +352,7 @@ namespace DotnesktRemastered.Structures
         [FieldOffset(176)]
         public BO6Bounds surfBounds;
     }
+
+    // Note:
+    // StTerrain: "samplePoints"
 }

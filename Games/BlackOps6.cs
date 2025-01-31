@@ -86,6 +86,24 @@ namespace DotnesktRemastered.Games
             }
             mapRoot.AddNode(mapGeoModel);
 
+            /*MeshData[] meshes = new MeshData[gfxWorldSurfaces.btndSurfacesCount];
+            for (int i = 0; i < gfxWorldSurfaces.btndSurfacesCount; i++)
+            {
+                BO6GfxSurface gfxSurface = Cordycep.ReadMemory<BO6GfxSurface>(gfxWorldSurfaces.btndSurfaces + i * sizeof(BO6GfxSurface));
+                BO6GfxUgbSurfData ugbSurfData = Cordycep.ReadMemory<BO6GfxUgbSurfData>(gfxWorldSurfaces.ugbSurfData + (nint)(gfxSurface.ugbSurfDataIndex * sizeof(BO6GfxUgbSurfData)));
+                BO6GfxWorldTransientZone zone = transientZone[ugbSurfData.transientZoneIndex];
+                nint materialPtr = Cordycep.ReadMemory<nint>(gfxWorldSurfaces.materials + (nint)(gfxSurface.materialIndex * 8));
+                BO6Material material = Cordycep.ReadMemory<BO6Material>(materialPtr);
+
+                MeshData mesh = ReadMesh(gfxSurface, ugbSurfData, material, zone);
+
+                mapGeoModel.AddNode(mesh.mesh);
+                mapGeoModel.AddNode(mesh.material);
+
+                meshes[i] = mesh;
+            }
+            mapRoot.AddNode(mapGeoModel);*/
+
             // Static prop xmodels
             BO6GfxWorldStaticModels smodels = gfxWorld.smodels;
             for (int i = 0; i < smodels.collectionsCount; i++)
@@ -179,7 +197,7 @@ namespace DotnesktRemastered.Games
                 {
                     instIdx++;
 
-                    BO6GfxSModelInstanceData instanceData = Cordycep.ReadMemory<BO6GfxSModelInstanceData>(smodels.smodelInstanceData + instanceId * sizeof(BO6GfxSModelInstanceData));
+                    BO6GfxSModelInstanceData instanceData = Cordycep.ReadMemory<BO6GfxSModelInstanceData>(smodels.instanceData + instanceId * sizeof(BO6GfxSModelInstanceData));
 
                     // Log.Information("Raw instance data: {instanceData}", BitConverter.ToString(Cordycep.ReadRawMemory((nint)smodels.instanceData + instanceId * sizeof(BO6GfxSModelInstanceData), 24)).Replace("-", ""));
                     Vector3 translation = new Vector3(
