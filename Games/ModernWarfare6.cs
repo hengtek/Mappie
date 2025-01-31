@@ -86,7 +86,6 @@ namespace DotnesktRemastered.Games
             Log.Information("Reading {count} static models...", gfxWorld.smodels.collectionsCount);
             stopwatch.Start();
             MW6GfxWorldStaticModels smodels = gfxWorld.smodels;
-
             for (int i = 0; i < smodels.collectionsCount; i++)
             {
                 MW6GfxStaticModelCollection collection = Cordycep.ReadMemory<MW6GfxStaticModelCollection>(smodels.collections + i * sizeof(MW6GfxStaticModelCollection));
@@ -158,9 +157,23 @@ namespace DotnesktRemastered.Games
                     {
                         MeshNode meshNode = new MeshNode();
                         meshNode.AddValue("m", xmodelMesh.material.Hash);
+                        meshNode.AddValue("ul", (uint)1);
+
                         CastArrayProperty<Vector3> positions = meshNode.AddArray<Vector3>("vp", new(xmodelMesh.positions.Count));
                         CastArrayProperty<Vector3> normals = meshNode.AddArray<Vector3>("vn", new(xmodelMesh.normals.Count));
                         CastArrayProperty<Vector2> uvs = meshNode.AddArray<Vector2>($"u0", xmodelMesh.uv);
+
+                        if(xmodelMesh.secondUv.Count > 0)
+                        {
+                            meshNode.AddValue("ul", (uint)2);
+                            meshNode.AddArray<Vector2>($"u1", xmodelMesh.secondUv);
+                        }
+
+                        if(xmodelMesh.colorVertex.Count > 0)
+                        {
+                            meshNode.AddValue("cl", (uint)1);
+                            meshNode.AddArray<uint>($"c0", xmodelMesh.colorVertex);
+                        }
 
                         foreach (var position in xmodelMesh.positions)
                         {
@@ -201,13 +214,28 @@ namespace DotnesktRemastered.Games
             root.AddNode(model);
             CastWriter.Save(Path.Join(outputFolder, $"{baseName}.cast"), root);
 
+            List<string> exportedImages = new();
+
             //Exporting materials
             //Base mesh
-            foreach(var mesh in meshes)
+            foreach (var mesh in meshes)
             {
                 string materialName = mesh.material.Name;
                 string materialPath = Path.Join(outputFolder, $"{materialName}_images.txt"); //stay consistent with greyhound naming or atleast try to...
-                File.WriteAllText(materialPath, FormatSemanticData(mesh.textures));
+
+                StringBuilder semanticTxt = new StringBuilder();
+                semanticTxt.Append("# semantic, image");
+                foreach (var texture in mesh.textures)
+                {
+                    semanticTxt.AppendLine();
+                    semanticTxt.Append($"{texture.semantic}, {texture.texture}");
+
+                    if(!exportedImages.Contains(texture.texture))
+                    {
+                        exportedImages.Add(texture.texture);
+                    }
+                }
+                File.WriteAllText(materialPath, semanticTxt.ToString());
             }
 
             foreach (var xmodelMesh in models.Values)
@@ -216,23 +244,28 @@ namespace DotnesktRemastered.Games
                 {
                     string materialName = mesh.material.Name;
                     string materialPath = Path.Join(outputFolder, $"{materialName}_images.txt");
-                    File.WriteAllText(materialPath, FormatSemanticData(mesh.textures));
+
+                    StringBuilder semanticTxt = new StringBuilder();
+                    semanticTxt.Append("# semantic, image");
+                    foreach (var texture in mesh.textures)
+                    {
+                        semanticTxt.AppendLine();
+                        semanticTxt.Append($"{texture.semantic}, {texture.texture}");
+
+                        if (!exportedImages.Contains(texture.texture))
+                        {
+                            exportedImages.Add(texture.texture);
+                        }
+                    }
+                    File.WriteAllText(materialPath, semanticTxt.ToString());
                 }
             }
+
+            //Used for greyhound mass export
+            File.WriteAllText(Path.Join(outputFolder, "global_images_list.txt"), string.Join(" ,", exportedImages));
+
             stopwatch.Stop();
             Log.Information("Exported {baseName} in {time} ms.", baseName, stopwatch.ElapsedMilliseconds);
-        }
-
-        private static string FormatSemanticData(List<TextureSemanticData> textures)
-        {
-            StringBuilder sb = new StringBuilder();
-            sb.Append("# semantic, image");
-            foreach (var texture in textures)
-            {
-                sb.AppendLine();
-                sb.Append($"{texture.semantic}, {texture.texture}");
-            }
-            return sb.ToString();
         }
 
         private static unsafe List<TextureSemanticData> PopulateMaterial(MW6Material material)
@@ -261,7 +294,14 @@ namespace DotnesktRemastered.Games
                     hash == 0xc29eeff15212c37 ||
                     hash == 0x8fd10a77ef7cceb ||
                     hash == 0x29f08617872fbdd ||
-                    hash == 0xcd365ba04eb6b) continue; //pretty sure its prob a null texture lol
+                    hash == 0xcd365ba04eb6b   ||
+                    hash == 0xc2d1c3e952cb190 ||
+                    hash == 0x2ca20d05140bbf8 ||
+                    hash == 0xc979d3a4845195f ||
+                    hash == 0xcdfbff57d64fc0d ||
+                    hash == 0x8b3d69e4258c738 ||
+                    hash == 0x859d988746fc4e8 ||
+                    hash == 0xebe9c97e3c8c029) continue; //pretty sure its prob a null texture lol
 
                 string imageName = $"ximage_{hash:X}".ToLower();
 
@@ -293,7 +333,7 @@ namespace DotnesktRemastered.Games
             MeshNode mesh = new MeshNode();
 
             ulong materialHash = material.hash & 0x0FFFFFFFFFFFFFFF;
-            MaterialNode materialNode = new MaterialNode($"xmaterial_{materialHash:X}", "pbr");
+            MaterialNode materialNode = new MaterialNode($"xmaterial_{materialHash:X}".ToLower(), "pbr");
             mesh.AddValue("m", materialNode.Hash);
 
             mesh.AddValue("ul", ugbSurfData.layerCount);
@@ -398,7 +438,7 @@ namespace DotnesktRemastered.Games
                 };
 
                 ulong materialHash = material.hash & 0x0FFFFFFFFFFFFFFF;
-                MaterialNode materialNode = new MaterialNode($"xmaterial_{materialHash:X}", "pbr");
+                MaterialNode materialNode = new MaterialNode($"xmaterial_{materialHash:X}".ToLower(), "pbr");
                 mesh.material = materialNode;
                 mesh.textures = PopulateMaterial(material);
 

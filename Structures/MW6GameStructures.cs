@@ -341,10 +341,10 @@ namespace DotnesktRemastered.Structures
 
     public enum MW6TextureIdxTable
     {
-        COLOR_MAP = 0,
-        COLOR_MAP_UV_1 = 1,
-        COLOR_MAP_UV_2 = 2,
-        COLOR_MAP_UV_3 = 3,
+        DIFFUSE_MAP = 0,
+        DIFFUSE_MAP_UV_1 = 1,
+        DIFFUSE_MAP_UV_2 = 2,
+        DIFFUSE_MAP_UV_3 = 3,
         NOG_MAP = 4,
         NOG_MAP_UV_1 = 5,
         NOG_MAP_UV_2 = 6,
