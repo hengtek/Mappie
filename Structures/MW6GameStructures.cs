@@ -325,7 +325,7 @@ namespace DotnesktRemastered.Structures
         public uint packedIndicesOffset;
         [FieldOffset(88)]
         public uint colorOffset;
-        [FieldOffset(92)]
+        [FieldOffset(96)]
         public uint secondUVOffset;
         [FieldOffset(120)]
         public nint shared;

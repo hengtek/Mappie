@@ -39,7 +39,7 @@ namespace DotnesktRemastered
             {
                 case "YAMYAMOK":
                     XSub.LoadFiles(Cordycep.GameDirectory);
-                    ModernWarfare6.DumpMap("mp_frontend_jup_01");
+                    ModernWarfare6.DumpMap("mp_jup_shipment_iw9");
                     break;
                 case "BLACKOP6":
                     XSub.LoadFiles(Cordycep.GameDirectory);

@@ -55,10 +55,10 @@ namespace DotnesktRemastered.Games
             }
 
             MW6GfxWorldSurfaces gfxWorldSurfaces = gfxWorld.surfaces;
+            MeshData[] meshes = new MeshData[gfxWorldSurfaces.count];
 
             Log.Information("Reading {count} surfaces...", gfxWorldSurfaces.count);
             stopwatch.Start();
-            MeshData[] meshes = new MeshData[gfxWorldSurfaces.count];
             for (int i = 0; i < gfxWorldSurfaces.count; i++)
             {
                 Stopwatch surfaceStopwatch = new Stopwatch();
@@ -82,7 +82,7 @@ namespace DotnesktRemastered.Games
             Log.Information("Read {count} surfaces in {time} ms.", gfxWorldSurfaces.count, stopwatch.ElapsedMilliseconds);
 
             stopwatch.Reset();
-            
+
             Log.Information("Reading {count} static models...", gfxWorld.smodels.collectionsCount);
             stopwatch.Start();
             MW6GfxWorldStaticModels smodels = gfxWorld.smodels;
