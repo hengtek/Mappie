@@ -20,7 +20,7 @@ namespace DotnesktRemastered.Games
         private static uint GFXMAP_POOL_IDX = 43;
 
         private static Dictionary<ulong, XModelMeshData[]> models = new();
-        public static void DumpMap(string name)
+        public static void DumpMap(string name, bool noStaticProps = false, Vector3 staticPropsOrigin = new(), uint range = 0)
         {
             Log.Information("Finding map {0}...", name);
             Cordycep.EnumerableAssetPool(GFXMAP_POOL_IDX, (asset) =>
@@ -36,6 +36,18 @@ namespace DotnesktRemastered.Games
                 }
             });
         }
+        public static string[] GetMapList()
+        {
+            List<string> maps = new List<string>();
+            Cordycep.EnumerableAssetPool(GFXMAP_POOL_IDX, (asset) =>
+            {
+                BO6GfxWorld gfxWorld = Cordycep.ReadMemory<BO6GfxWorld>(asset.Header);
+                if (gfxWorld.baseName == 0) return;
+                string baseName = Cordycep.ReadString(gfxWorld.baseName).Trim();
+                maps.Add(baseName);
+            });
+            return maps.ToArray();
+        }
 
         static void CreateDirectoryIfNotExists(string? path)
         {
@@ -46,7 +58,7 @@ namespace DotnesktRemastered.Games
                 Directory.CreateDirectory(path);
         }
 
-        private static unsafe void DumpMap(BO6GfxWorld gfxWorld, string mapBaseName)
+        private static unsafe void DumpMap(BO6GfxWorld gfxWorld, string mapBaseName, bool noStaticProps = false, Vector3 staticPropsOrigin = new(), uint range = 0)
         {
             // Create a root for map
             CastNode mapRoot = new CastNode(CastNodeIdentifier.Root);

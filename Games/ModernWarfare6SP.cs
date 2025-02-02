@@ -21,14 +21,10 @@ namespace DotnesktRemastered.Games
         private static uint GFXMAP_POOL_IDX = 50;
 
         private static Dictionary<ulong, XModelMeshData[]> models = new Dictionary<ulong, XModelMeshData[]>();
-        public static void DumpMap(string name)
+        public static void DumpMap(string name, bool noStaticProps = false, Vector3 staticPropsOrigin = new(), uint range = 0)
         {
             Log.Information("Finding map {baseName}...", name);
-            Cordycep.EnumerableAssetPool(51, (asset) =>
-            {
-                MW6SPGfxWorldTransientZone zone = Cordycep.ReadMemory<MW6SPGfxWorldTransientZone>(asset.Header);
-                Log.Information($"{BitConverter.ToString(Cordycep.ReadRawMemory(zone.unkPtr0, 16)).Replace("-", "")}");
-            });
+            bool found = false;
             Cordycep.EnumerableAssetPool(GFXMAP_POOL_IDX, (asset) =>
             {
                 MW6SPGfxWorld gfxWorld = Cordycep.ReadMemory<MW6SPGfxWorld>(asset.Header);
@@ -39,19 +35,43 @@ namespace DotnesktRemastered.Games
                     Log.Information("Found map {0}, started dumping... :)", baseName);
                     DumpMap(asset.Header, gfxWorld, baseName);
                     Log.Information("Dumped map {0}. XD", baseName);
+                    found = true;
                 }
             });
+
+            if (!found)
+            {
+                Log.Error("Map {0} not found. :(", name);
+            }
         }
 
-        private static unsafe void DumpMap(nint asset, MW6SPGfxWorld gfxWorld, string baseName)
+        public static string[] GetMapList()
+        {
+            List<string> maps = new List<string>();
+            Cordycep.EnumerableAssetPool(GFXMAP_POOL_IDX, (asset) =>
+            {
+                MW6SPGfxWorld gfxWorld = Cordycep.ReadMemory<MW6SPGfxWorld>(asset.Header);
+                if (gfxWorld.baseName == 0) return;
+                string baseName = Cordycep.ReadString(gfxWorld.baseName).Trim();
+                maps.Add(baseName);
+            });
+            return maps.ToArray();
+        }
+
+        private static unsafe void DumpMap(nint asset, MW6SPGfxWorld gfxWorld, string baseName, bool noStaticProps = false, Vector3 staticPropsOrigin = new(), uint range = 0)
         {
             //Performance test
             Stopwatch stopwatch = new Stopwatch();
 
-            ModelNode model = new ModelNode();
-            SkeletonNode skeleton = new SkeletonNode();
-            model.AddString("n", $"{baseName}_base_mesh");
-            model.AddNode(skeleton);
+            ModelNode baseMeshModel = new ModelNode();
+            SkeletonNode baseMeshSkeleton = new SkeletonNode();
+            baseMeshModel.AddString("n", $"{baseName}_base_mesh");
+            baseMeshModel.AddNode(baseMeshSkeleton);
+
+            ModelNode staticPropsModel = new ModelNode();
+            SkeletonNode staticPropsSkeleton = new SkeletonNode();
+            staticPropsModel.AddString("n", $"{baseName}_static_props_mesh");
+            staticPropsModel.AddNode(staticPropsSkeleton);
 
             MW6SPGfxWorldTransientZone[] transientZone = new MW6SPGfxWorldTransientZone[gfxWorld.transientZoneCount];
 
@@ -85,8 +105,8 @@ namespace DotnesktRemastered.Games
 
                 MeshData mesh = ReadMesh(gfxSurface, ugbSurfData, material, zone);
 
-                model.AddNode(mesh.mesh);
-                model.AddNode(mesh.material);
+                baseMeshModel.AddNode(mesh.mesh);
+                baseMeshModel.AddNode(mesh.material);
 
                 meshes[i] = mesh;
                 surfaceStopwatch.Stop();
@@ -95,128 +115,139 @@ namespace DotnesktRemastered.Games
             stopwatch.Stop();
             Log.Information("Read {count} surfaces in {time} ms.", gfxWorldSurfaces.count, stopwatch.ElapsedMilliseconds);
 
-            stopwatch.Reset();
-
-            Log.Information("Reading {count} static models...", gfxWorld.smodels.collectionsCount);
-            stopwatch.Start();
-            MW6SPGfxWorldStaticModels smodels = gfxWorld.smodels;
-            for (int i = 0; i < smodels.collectionsCount; i++)
+            if (!noStaticProps)
             {
-                MW6SPGfxStaticModelCollection collection = Cordycep.ReadMemory<MW6SPGfxStaticModelCollection>(smodels.collections + i * sizeof(MW6SPGfxStaticModelCollection));
-                MW6SPGfxStaticModel staticModel = Cordycep.ReadMemory<MW6SPGfxStaticModel>(smodels.smodels + collection.smodelIndex * sizeof(MW6SPGfxStaticModel));
-                MW6SPGfxWorldTransientZone zone = transientZone[collection.transientGfxWorldPlaced];
+                stopwatch.Reset();
+                Log.Information("Reading {count} static models...", gfxWorld.smodels.collectionsCount);
+                stopwatch.Start();
 
-                if (zone.hash == 0) continue;
-
-                MW6SPXModel xmodel = Cordycep.ReadMemory<MW6SPXModel>(staticModel.xmodel);
-
-                ulong xmodelHash = xmodel.hash & 0x0FFFFFFFFFFFFFFF;
-
-                MW6SPXModelLodInfo lodInfo = Cordycep.ReadMemory<MW6SPXModelLodInfo>(xmodel.lodInfo);
-                MW6SPXModelSurfs xmodelSurfs = Cordycep.ReadMemory<MW6SPXModelSurfs>(lodInfo.modelSurfsStaging);
-                MW6SPXSurfaceShared shared = Cordycep.ReadMemory<MW6SPXSurfaceShared>(xmodelSurfs.shared);
-
-                XModelMeshData[] xmodelMeshes;
-                if (models.ContainsKey(xmodelHash))
+                MW6SPGfxWorldStaticModels smodels = gfxWorld.smodels;
+                for (int i = 0; i < smodels.collectionsCount; i++)
                 {
-                    xmodelMeshes = models[xmodelHash];
-                }
-                else
-                {
-                    Stopwatch xmodelStopwatch = new Stopwatch();
-                    xmodelStopwatch.Start();
-                    if (shared.data == 0)
+                    MW6SPGfxStaticModelCollection collection = Cordycep.ReadMemory<MW6SPGfxStaticModelCollection>(smodels.collections + i * sizeof(MW6SPGfxStaticModelCollection));
+                    MW6SPGfxStaticModel staticModel = Cordycep.ReadMemory<MW6SPGfxStaticModel>(smodels.smodels + collection.smodelIndex * sizeof(MW6SPGfxStaticModel));
+                    MW6SPGfxWorldTransientZone zone = transientZone[collection.transientGfxWorldPlaced];
+
+                    if (zone.hash == 0) continue;
+
+                    MW6SPXModel xmodel = Cordycep.ReadMemory<MW6SPXModel>(staticModel.xmodel);
+
+                    ulong xmodelHash = xmodel.hash & 0x0FFFFFFFFFFFFFFF;
+
+                    MW6SPXModelLodInfo lodInfo = Cordycep.ReadMemory<MW6SPXModelLodInfo>(xmodel.lodInfo);
+                    MW6SPXModelSurfs xmodelSurfs = Cordycep.ReadMemory<MW6SPXModelSurfs>(lodInfo.modelSurfsStaging);
+                    MW6SPXSurfaceShared shared = Cordycep.ReadMemory<MW6SPXSurfaceShared>(xmodelSurfs.shared);
+
+                    XModelMeshData[] xmodelMeshes;
+                    if (models.ContainsKey(xmodelHash))
                     {
-                        byte[] buffer = XSub.ExtractXSubPackage(xmodelSurfs.xpakKey, shared.dataSize);
-                        nint sharedPtr = Marshal.AllocHGlobal((int)shared.dataSize);
-                        Marshal.Copy(buffer, 0, sharedPtr, (int)shared.dataSize);
-                        xmodelMeshes = ReadXModelMeshes(xmodel, (nint)sharedPtr, true);
-                        Marshal.FreeHGlobal(sharedPtr);
+                        xmodelMeshes = models[xmodelHash];
                     }
                     else
                     {
-                        xmodelMeshes = ReadXModelMeshes(xmodel, shared.data, false);
+                        Stopwatch xmodelStopwatch = new Stopwatch();
+                        xmodelStopwatch.Start();
+                        if (shared.data == 0)
+                        {
+                            byte[] buffer = XSub.ExtractXSubPackage(xmodelSurfs.xpakKey, shared.dataSize);
+                            nint sharedPtr = Marshal.AllocHGlobal((int)shared.dataSize);
+                            Marshal.Copy(buffer, 0, sharedPtr, (int)shared.dataSize);
+                            xmodelMeshes = ReadXModelMeshes(xmodel, (nint)sharedPtr, true);
+                            Marshal.FreeHGlobal(sharedPtr);
+                        }
+                        else
+                        {
+                            xmodelMeshes = ReadXModelMeshes(xmodel, shared.data, false);
+                        }
+                        xmodelStopwatch.Stop();
+                        Log.Information("Read xmodel {xmodel:X} in {time} ms.", xmodelHash, xmodelStopwatch.ElapsedMilliseconds);
+                        models[xmodelHash] = xmodelMeshes;
+                        //pre register xmodel materials
+                        foreach (var xmodelMesh in xmodelMeshes)
+                        {
+                            staticPropsModel.AddNode(xmodelMesh.material);
+                        }
                     }
-                    xmodelStopwatch.Stop();
-                    Log.Information("Read xmodel {xmodel:X} in {time} ms.", xmodelHash, xmodelStopwatch.ElapsedMilliseconds);
-                    models[xmodelHash] = xmodelMeshes;
-                    //pre register xmodel materials
-                    foreach (var xmodelMesh in xmodelMeshes)
+
+                    string xmodelName = Cordycep.ReadString(xmodel.name);
+                    int instanceId = (int)collection.firstInstance;
+                    while (instanceId < collection.firstInstance + collection.instanceCount)
                     {
-                        model.AddNode(xmodelMesh.material);
+                        MW6SPGfxSModelInstanceData instanceData = Cordycep.ReadMemory<MW6SPGfxSModelInstanceData>((nint)smodels.instanceData + instanceId * sizeof(MW6SPGfxSModelInstanceData));
+
+                        Vector3 translation = new Vector3(
+                            (float)instanceData.translation[0] * 0.000244140625f,
+                            (float)instanceData.translation[1] * 0.000244140625f,
+                            (float)instanceData.translation[2] * 0.000244140625f
+                        );
+
+                        Vector3 translationForComparison = new Vector3(translation.X, translation.Y, 0);
+
+                        if(range != 0 && Vector3.Distance(translationForComparison, staticPropsOrigin) > range)
+                        {
+                            instanceId++;
+                            continue;
+                        }
+
+                        Quaternion rotation = new Quaternion(
+                            Math.Min(Math.Max((float)((float)instanceData.orientation[0] * 0.000030518044f) - 1.0f, -1.0f), 1.0f),
+                            Math.Min(Math.Max((float)((float)instanceData.orientation[1] * 0.000030518044f) - 1.0f, -1.0f), 1.0f),
+                            Math.Min(Math.Max((float)((float)instanceData.orientation[2] * 0.000030518044f) - 1.0f, -1.0f), 1.0f),
+                            Math.Min(Math.Max((float)((float)instanceData.orientation[3] * 0.000030518044f) - 1.0f, -1.0f), 1.0f)
+                        );
+
+                        float scale = (float)BitConverter.UInt16BitsToHalf(instanceData.halfFloatScale);
+
+                        Matrix4x4 transformation = Matrix4x4.CreateScale(scale) * Matrix4x4.CreateFromQuaternion(rotation) * Matrix4x4.CreateTranslation(translation);
+
+                        foreach (var xmodelMesh in xmodelMeshes)
+                        {
+                            MeshNode meshNode = new MeshNode();
+                            meshNode.AddValue("m", xmodelMesh.material.Hash);
+                            meshNode.AddValue("ul", (uint)1);
+
+                            CastArrayProperty<Vector3> positions = meshNode.AddArray<Vector3>("vp", new(xmodelMesh.positions.Count));
+                            CastArrayProperty<Vector3> normals = meshNode.AddArray<Vector3>("vn", new(xmodelMesh.normals.Count));
+                            CastArrayProperty<Vector2> uvs = meshNode.AddArray<Vector2>($"u0", xmodelMesh.uv);
+
+                            if (xmodelMesh.secondUv.Count > 0)
+                            {
+                                meshNode.AddValue("ul", (uint)2);
+                                meshNode.AddArray<Vector2>($"u1", xmodelMesh.secondUv);
+                            }
+
+                            if (xmodelMesh.colorVertex.Count > 0)
+                            {
+                                meshNode.AddValue("cl", (uint)1);
+                                meshNode.AddArray<uint>($"c0", xmodelMesh.colorVertex);
+                            }
+
+                            foreach (var position in xmodelMesh.positions)
+                            {
+                                positions.Add(Vector3.Transform(position, transformation));
+                            }
+
+                            foreach (var normal in xmodelMesh.normals)
+                            {
+                                normals.Add(Vector3.TransformNormal(normal, transformation));
+                            }
+
+                            CastArrayProperty<ushort> f = meshNode.AddArray<ushort>("f", new(xmodelMesh.faces.Count));
+                            foreach (var face in xmodelMesh.faces)
+                            {
+                                f.Add(face.c);
+                                f.Add(face.b);
+                                f.Add(face.a);
+                            }
+
+                            staticPropsModel.AddNode(meshNode);
+                        }
+                        instanceId++;
                     }
                 }
-
-                string xmodelName = Cordycep.ReadString(xmodel.name);
-                int instanceId = (int)collection.firstInstance;
-                while (instanceId < collection.firstInstance + collection.instanceCount)
-                {
-                    MW6SPGfxSModelInstanceData instanceData = Cordycep.ReadMemory<MW6SPGfxSModelInstanceData>((nint)smodels.instanceData + instanceId * sizeof(MW6SPGfxSModelInstanceData));
-
-                    Vector3 translation = new Vector3(
-                        (float)instanceData.translation[0] * 0.000244140625f,
-                        (float)instanceData.translation[1] * 0.000244140625f,
-                        (float)instanceData.translation[2] * 0.000244140625f
-                    );
-
-                    Quaternion rotation = new Quaternion(
-                        Math.Min(Math.Max((float)((float)instanceData.orientation[0] * 0.000030518044f) - 1.0f, -1.0f), 1.0f),
-                        Math.Min(Math.Max((float)((float)instanceData.orientation[1] * 0.000030518044f) - 1.0f, -1.0f), 1.0f),
-                        Math.Min(Math.Max((float)((float)instanceData.orientation[2] * 0.000030518044f) - 1.0f, -1.0f), 1.0f),
-                        Math.Min(Math.Max((float)((float)instanceData.orientation[3] * 0.000030518044f) - 1.0f, -1.0f), 1.0f)
-                    );
-
-                    float scale = (float)BitConverter.UInt16BitsToHalf(instanceData.halfFloatScale);
-
-                    Matrix4x4 transformation = Matrix4x4.CreateScale(scale) * Matrix4x4.CreateFromQuaternion(rotation) * Matrix4x4.CreateTranslation(translation);
-
-                    foreach (var xmodelMesh in xmodelMeshes)
-                    {
-                        MeshNode meshNode = new MeshNode();
-                        meshNode.AddValue("m", xmodelMesh.material.Hash);
-                        meshNode.AddValue("ul", (uint)1);
-
-                        CastArrayProperty<Vector3> positions = meshNode.AddArray<Vector3>("vp", new(xmodelMesh.positions.Count));
-                        CastArrayProperty<Vector3> normals = meshNode.AddArray<Vector3>("vn", new(xmodelMesh.normals.Count));
-                        CastArrayProperty<Vector2> uvs = meshNode.AddArray<Vector2>($"u0", xmodelMesh.uv);
-
-                        if(xmodelMesh.secondUv.Count > 0)
-                        {
-                            meshNode.AddValue("ul", (uint)2);
-                            meshNode.AddArray<Vector2>($"u1", xmodelMesh.secondUv);
-                        }
-
-                        if(xmodelMesh.colorVertex.Count > 0)
-                        {
-                            meshNode.AddValue("cl", (uint)1);
-                            meshNode.AddArray<uint>($"c0", xmodelMesh.colorVertex);
-                        }
-
-                        foreach (var position in xmodelMesh.positions)
-                        {
-                            positions.Add(Vector3.Transform(position, transformation));
-                        }
-
-                        foreach (var normal in xmodelMesh.normals)
-                        {
-                            normals.Add(Vector3.TransformNormal(normal, transformation));
-                        }
-
-                        CastArrayProperty<ushort> f = meshNode.AddArray<ushort>("f", new(xmodelMesh.faces.Count));
-                        foreach (var face in xmodelMesh.faces)
-                        {
-                            f.Add(face.c);
-                            f.Add(face.b);
-                            f.Add(face.a);
-                        }
-
-                        model.AddNode(meshNode);
-                    }
-                    instanceId++;
-                }
+                stopwatch.Stop();
+                Log.Information("Read {count} static models in {time} ms.", smodels.collectionsCount, stopwatch.ElapsedMilliseconds);
             }
-            stopwatch.Stop();
-            Log.Information("Read {count} static models in {time} ms.", smodels.collectionsCount, stopwatch.ElapsedMilliseconds);
 
             stopwatch.Reset();
             Log.Information("Exporting {baseName}...", baseName);
@@ -228,8 +259,12 @@ namespace DotnesktRemastered.Games
                 Directory.CreateDirectory(outputFolder);
 
             CastNode root = new CastNode(CastNodeIdentifier.Root);
-            root.AddNode(model);
-            CastWriter.Save(Path.Join(outputFolder, $"{baseName}.cast"), root);
+            root.AddNode(baseMeshModel);
+            CastWriter.Save(Path.Join(outputFolder, $"{baseName}_base_mesh.cast"), root);
+
+            root = new CastNode(CastNodeIdentifier.Root);
+            root.AddNode(staticPropsModel);
+            CastWriter.Save(Path.Join(outputFolder, $"{baseName}_static_props_mesh.cast"), root);
 
             List<string> exportedImages = new();
 

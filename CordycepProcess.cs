@@ -54,7 +54,6 @@ namespace DotnesktRemastered
         {
             nint poolPtr = (nint)(PoolsAddress + poolIdx * sizeof(XAssetPool64));
             XAssetPool64 pool = ReadMemory<XAssetPool64>(poolPtr);
-            Log.Information($"Enumerating pool {poolIdx} @ {(nint)poolPtr:X}");
             for (nint assetPtr = pool.Root; assetPtr != 0; assetPtr = ReadMemory<XAsset64>(assetPtr).Next)
             {
                 XAsset64 asset = ReadMemory<XAsset64>(assetPtr);
