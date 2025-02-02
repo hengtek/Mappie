@@ -34,6 +34,7 @@ namespace DotnesktRemastered.FileStorage
             {
                 BinaryReader reader = new BinaryReader(File.Open(file, FileMode.Open));
                 ReadXSub(reader, file);
+                reader.Close();
             }
             //dump test
         }
@@ -84,8 +85,6 @@ namespace DotnesktRemastered.FileStorage
                 if (!CacheObjects.ContainsKey(key))
                     CacheObjects.Add(key, cacheObject);
             }
-
-            reader.Close();
         }
         public static unsafe byte[] ExtractXSubPackage(ulong key, uint size)
         {

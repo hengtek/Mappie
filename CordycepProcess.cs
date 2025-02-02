@@ -43,6 +43,8 @@ namespace DotnesktRemastered
         public nint StringsAddress;
         public string GameDirectory;
 
+        public string[] Flags;
+
         public CordycepProcess(Process process)
         {
             ProcessHandle = process.SafeHandle;
@@ -76,7 +78,21 @@ namespace DotnesktRemastered
             StringsAddress = (nint)reader.ReadUInt64();
             int gameDirectoryLength = reader.ReadInt32();
             GameDirectory = new string(reader.ReadChars(gameDirectoryLength));
+            
+            uint flagsCount = reader.ReadUInt32();
+            Flags = new string[flagsCount];
+            for (int i = 0; i < flagsCount; i++)
+            {
+                int flagLength = reader.ReadInt32();
+                Flags[i] = new string(reader.ReadChars(flagLength));
+            }
+            reader.Close();
         }
+        public bool IsSinglePlayer()
+        {
+            return Flags.Contains("sp");
+        }
+
 
         //isLocal: check if its address is local or not,
         //yes i know this is stupid and dumb

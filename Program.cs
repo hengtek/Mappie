@@ -35,11 +35,19 @@ namespace DotnesktRemastered
             Log.Information("Pools Address: {address:X}", Cordycep.PoolsAddress);
             Log.Information("Strings Address: {address:X}", Cordycep.StringsAddress);
             Log.Information("Game Directory: {directory}", Cordycep.GameDirectory);
+             Log.Information("Flag: {flag}", string.Join(", ", Cordycep.Flags));
             switch (gameId)
             {
                 case "YAMYAMOK":
                     XSub.LoadFiles(Cordycep.GameDirectory);
-                    ModernWarfare6.DumpMap("mp_jup_shipment_iw9");
+                    if (Cordycep.IsSinglePlayer())
+                    {
+                        ModernWarfare6SP.DumpMap("sp_jup_surge");
+                    }
+                    else
+                    {
+                        ModernWarfare6.DumpMap("sp_jup_surge");
+                    }
                     break;
                 case "BLACKOP6":
                     XSub.LoadFiles(Cordycep.GameDirectory);

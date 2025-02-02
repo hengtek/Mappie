@@ -9,7 +9,7 @@ using System.Threading.Tasks;
 namespace DotnesktRemastered.Structures
 {
     [StructLayout(LayoutKind.Explicit, Size = 40)]
-    public unsafe struct MW6GfxSurface
+    public unsafe struct MW6SPGfxSurface
     {
         [FieldOffset(0)]
         public uint posOffset;
@@ -38,10 +38,10 @@ namespace DotnesktRemastered.Structures
     }
 
     [StructLayout(LayoutKind.Explicit, Size = 128)]
-    public unsafe struct MW6GfxUgbSurfData
+    public unsafe struct MW6SPGfxUgbSurfData
     {
         [FieldOffset(0)]
-        public MW6GfxWorldDrawOffset worldDrawOffset;
+        public MW6SPGfxWorldDrawOffset worldDrawOffset;
         [FieldOffset(16)]
         public uint transientZoneIndex;
         [FieldOffset(20)]
@@ -74,7 +74,7 @@ namespace DotnesktRemastered.Structures
         public fixed uint displacementOffset[8];
     }
     [StructLayout(LayoutKind.Explicit, Size = 16)]
-    public unsafe struct MW6GfxWorldDrawOffset
+    public unsafe struct MW6SPGfxWorldDrawOffset
     {
         [FieldOffset(0)]
         public float x;
@@ -87,7 +87,7 @@ namespace DotnesktRemastered.Structures
     }
 
     [StructLayout(LayoutKind.Explicit, Size = 392)]
-    public unsafe struct MW6GfxWorldSurfaces
+    public unsafe struct MW6SPGfxWorldSurfaces
     {
         [FieldOffset(0)]
         public uint count;
@@ -110,7 +110,7 @@ namespace DotnesktRemastered.Structures
     }
 
     [StructLayout(LayoutKind.Explicit, Size = 48)]
-    public unsafe struct MW6GfxWorldDrawVerts
+    public unsafe struct MW6SPGfxWorldDrawVerts
     {
         [FieldOffset(0)]
         public uint posSize;
@@ -131,7 +131,7 @@ namespace DotnesktRemastered.Structures
     }
 
     [StructLayout(LayoutKind.Explicit, Size = 376)]
-    public unsafe struct MW6GfxWorldTransientZone
+    public unsafe struct MW6SPGfxWorldTransientZone
     {
         [FieldOffset(0)]
         public ulong hash;
@@ -140,53 +140,52 @@ namespace DotnesktRemastered.Structures
         [FieldOffset(16)]
         public ulong transientZoneIndex;
         [FieldOffset(24)]
-        public MW6GfxWorldDrawVerts drawVerts;
+        public MW6SPGfxWorldDrawVerts drawVerts;
     }
 
     [StructLayout(LayoutKind.Explicit)]
-    public unsafe struct MW6GfxWorld
+    public unsafe struct MW6SPGfxWorld
     {
         [FieldOffset(0)]
         public ulong hash;
         [FieldOffset(8)]
         public nint baseName;
         [FieldOffset(192)]
-        public MW6GfxWorldSurfaces surfaces;
+        public MW6SPGfxWorldSurfaces surfaces;
         [FieldOffset(560)]
-        public MW6GfxWorldStaticModels smodels;
-        [FieldOffset(5660)]
+        public MW6SPGfxWorldStaticModels smodels;
+        [FieldOffset(5652)]
         public uint transientZoneCount;
-        [FieldOffset(5664)]
+        [FieldOffset(5656)]
         public fixed ulong transientZones[1536];
     }
 
-    [StructLayout(LayoutKind.Explicit, Size = 120)]
-    public unsafe struct MW6Material {
+    [StructLayout(LayoutKind.Explicit, Size = 112)]
+    public unsafe struct MW6SPMaterial
+    {
         [FieldOffset(0)]
         public ulong hash;
         [FieldOffset(24)]
         public byte textureCount;
-        [FieldOffset(26)]
-        public byte layerCount;
         [FieldOffset(27)]
-        public byte imageCount;
-        [FieldOffset(40)]
-        public nint textureTable;
+        public byte layerCount;
         [FieldOffset(48)]
-        public nint imageTable;
+        public nint textureTable;
     }
 
-    [StructLayout(LayoutKind.Explicit, Size = 2)]
-    public unsafe struct MW6MaterialTextureDef
+    [StructLayout(LayoutKind.Explicit, Size = 16)]
+    public unsafe struct MW6SPMaterialTextureDef
     {
         [FieldOffset(0)]
         public byte index;
         [FieldOffset(1)]
-        public byte imageIdx;
+        public fixed byte padding[7];
+        [FieldOffset(8)]
+        public nint imagePtr;
     }
 
     [StructLayout(LayoutKind.Explicit, Size = 384)]
-    public unsafe struct MW6GfxWorldStaticModels
+    public unsafe struct MW6SPGfxWorldStaticModels
     {
         [FieldOffset(4)]
         public uint smodelCount;
@@ -205,7 +204,7 @@ namespace DotnesktRemastered.Structures
     }
 
     [StructLayout(LayoutKind.Sequential, Size = 16)]
-    public unsafe struct MW6GfxStaticModel
+    public unsafe struct MW6SPGfxStaticModel
     {
         public nint xmodel;
         public byte flags;
@@ -214,7 +213,7 @@ namespace DotnesktRemastered.Structures
     }
 
     [StructLayout(LayoutKind.Sequential, Size = 16)]
-    public unsafe struct MW6GfxStaticModelCollection
+    public unsafe struct MW6SPGfxStaticModelCollection
     {
         public uint firstInstance;
         public uint instanceCount;
@@ -226,7 +225,7 @@ namespace DotnesktRemastered.Structures
     };
 
     [StructLayout(LayoutKind.Sequential, Size = 24)]
-    public unsafe struct MW6GfxSModelInstanceData
+    public unsafe struct MW6SPGfxSModelInstanceData
     {
         public fixed int translation[3];
         public fixed ushort orientation[4];
@@ -234,14 +233,14 @@ namespace DotnesktRemastered.Structures
     }
 
     [StructLayout(LayoutKind.Explicit, Size = 64)]
-    public unsafe struct MW6GfxImage
+    public unsafe struct MW6SPGfxImage
     {
         [FieldOffset(0)]
         public ulong hash;
     }
 
     [StructLayout(LayoutKind.Explicit, Size = 232)]
-    public unsafe struct MW6XModel
+    public unsafe struct MW6SPXModel
     {
         [FieldOffset(0)]
         public ulong hash;
@@ -251,14 +250,14 @@ namespace DotnesktRemastered.Structures
         public ushort numSurfs;
         [FieldOffset(40)]
         public float scale;
-        [FieldOffset(144)]
+        [FieldOffset(264)]
         public nint materialHandles;
-        [FieldOffset(152)]
+        [FieldOffset(272)]
         public nint lodInfo;
     }
 
     [StructLayout(LayoutKind.Explicit, Size = 72)]
-    public unsafe struct MW6XModelLodInfo
+    public unsafe struct MW6SPXModelLodInfo
     {
         [FieldOffset(0)]
         public nint modelSurfsStaging;
@@ -273,7 +272,7 @@ namespace DotnesktRemastered.Structures
     }
 
     [StructLayout(LayoutKind.Explicit, Size = 80, Pack = 1)]
-    public unsafe struct MW6XModelSurfs
+    public unsafe struct MW6SPXModelSurfs
     {
         [FieldOffset(0)]
         public ulong hash;
@@ -288,7 +287,7 @@ namespace DotnesktRemastered.Structures
     }
 
     [StructLayout(LayoutKind.Explicit, Size = 16)]
-    public unsafe struct MW6XSurfaceShared
+    public unsafe struct MW6SPXSurfaceShared
     {
         [FieldOffset(0)]
         public nint data;
@@ -299,7 +298,7 @@ namespace DotnesktRemastered.Structures
     }
 
     [StructLayout(LayoutKind.Explicit, Size = 224)]
-    public unsafe struct MW6XSurface
+    public unsafe struct MW6SPXSurface
     {
         [FieldOffset(4)]
         public ushort packedIndiciesTableCount;
@@ -339,7 +338,7 @@ namespace DotnesktRemastered.Structures
         public float max;
     }
 
-    public enum MW6TextureIdxTable
+    public enum MW6SPTextureIdxTable
     {
         DIFFUSE_MAP = 0,
         DIFFUSE_MAP_UV_1 = 1,
