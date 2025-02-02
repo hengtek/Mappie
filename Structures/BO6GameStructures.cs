@@ -213,7 +213,7 @@ namespace DotnesktRemastered.Structures
         [FieldOffset(27508)]
         public uint transientZoneCount;
         [FieldOffset(27512)]
-        public fixed ulong transientZones[1536];
+        public fixed ulong transientZones[0x600];
     }
 
     [StructLayout(LayoutKind.Explicit, Size = 128)]
@@ -351,6 +351,35 @@ namespace DotnesktRemastered.Structures
         public nint shared;
         [FieldOffset(176)]
         public BO6Bounds surfBounds;
+    }
+
+    [StructLayout(LayoutKind.Explicit, Size = 24)]
+    public unsafe struct BO6TransientInfoUnk
+    {
+        [FieldOffset(0)]
+        public nint name;
+        [FieldOffset(8)]
+        public ulong hash;
+        [FieldOffset(16)]
+        public fixed ushort unkFlags[4]; // index? type? flag?
+    }
+
+    [StructLayout(LayoutKind.Explicit, Size = 200)]
+    public unsafe struct BO6TransientInfo
+    {
+        [FieldOffset(112)]
+        public nint unkPtr;
+        [FieldOffset(176)]
+        public uint unkCount; // * 24
+    }
+
+    [StructLayout(LayoutKind.Explicit, Size = 152)]
+    public unsafe struct BO6StreamingInfo
+    {
+        [FieldOffset(0)]
+        public ulong hash;
+        [FieldOffset(128)]
+        public nint transientInfoPtr;
     }
 
     // Note:

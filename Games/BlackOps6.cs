@@ -18,6 +18,7 @@ namespace DotnesktRemastered.Games
         public static CordycepProcess Cordycep = Program.Cordycep;
 
         private static uint GFXMAP_POOL_IDX = 43;
+        private static uint STREAMINGINFO_POOL_IDX = 0x4F;
 
         private static Dictionary<ulong, XModelMeshData[]> models = new();
         public static void DumpMap(string name, bool noStaticProps = false, Vector3 staticPropsOrigin = new(), uint range = 0)
@@ -47,6 +48,23 @@ namespace DotnesktRemastered.Games
                 maps.Add(baseName);
             });
             return maps.ToArray();
+        }
+        public static unsafe void TestLmao()
+        {
+            Cordycep.EnumerableAssetPool(STREAMINGINFO_POOL_IDX, (asset) =>
+            {
+                var streamingInfo = Cordycep.ReadMemory<BO6StreamingInfo>(asset.Header);
+                var transientInfo = Cordycep.ReadMemory<BO6TransientInfo>(streamingInfo.transientInfoPtr);
+                for (uint i = 0; i < transientInfo.unkCount; i++)
+                {
+                    var unk = Cordycep.ReadMemory<BO6TransientInfoUnk>(transientInfo.unkPtr + (nint)i * sizeof(BO6TransientInfoUnk));
+                    var assetName = Cordycep.ReadString(unk.name);
+
+                    Log.Information("[{0}] Asset: 0x{1:x} - {2} - ({3}, {4}, {5}, {6}).",
+                        i, unk.hash, assetName,
+                        unk.unkFlags[0], unk.unkFlags[1], unk.unkFlags[2], unk.unkFlags[3]);
+                }
+            });
         }
 
         static void CreateDirectoryIfNotExists(string? path)
