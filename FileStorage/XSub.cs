@@ -168,7 +168,7 @@ namespace DotnesktRemastered.FileStorage
             }
             reader.Close();
             stopwatch.Stop();
-            Log.Information("Decompressed {key:X} in {time}ms. Buffer size: {size}", key, stopwatch.ElapsedMilliseconds, tempBuffer.Length);
+            Log.Debug("Decompressed {key:X} in {time}ms. Buffer size: {size}", key, stopwatch.ElapsedMilliseconds, tempBuffer.Length);
             return tempBuffer;
         }
     }

@@ -32,7 +32,7 @@ namespace DotnesktRemastered.Games
                 if (baseName == name)
                 {
                     Log.Information("Found map {0}, started dumping... :)", baseName);
-                    DumpMap(asset.Header, gfxWorld, baseName);
+                    DumpMap(asset.Header, gfxWorld, baseName, noStaticProps, staticPropsOrigin, range);
                     Log.Information("Dumped map {0}. XD", baseName);
                 }
             });
@@ -79,8 +79,6 @@ namespace DotnesktRemastered.Games
             stopwatch.Start();
             for (int i = 0; i < gfxWorldSurfaces.count; i++)
             {
-                Stopwatch surfaceStopwatch = new Stopwatch();
-                surfaceStopwatch.Start();
                 MW6GfxSurface gfxSurface = Cordycep.ReadMemory<MW6GfxSurface>(gfxWorldSurfaces.surfaces + i * sizeof(MW6GfxSurface));
                 MW6GfxUgbSurfData ugbSurfData = Cordycep.ReadMemory<MW6GfxUgbSurfData>(gfxWorldSurfaces.ugbSurfData + (nint)(gfxSurface.ugbSurfDataIndex * sizeof(MW6GfxUgbSurfData)));
                 MW6GfxWorldTransientZone zone = transientZone[ugbSurfData.transientZoneIndex];
@@ -93,8 +91,6 @@ namespace DotnesktRemastered.Games
                 baseMeshModel.AddNode(mesh.material);
 
                 meshes[i] = mesh;
-                surfaceStopwatch.Stop();
-                Log.Information("Read surface {i} in {time} ms.", i, surfaceStopwatch.ElapsedMilliseconds);
             }
             stopwatch.Stop();
             Log.Information("Read {count} surfaces in {time} ms.", gfxWorldSurfaces.count, stopwatch.ElapsedMilliseconds);
@@ -130,8 +126,6 @@ namespace DotnesktRemastered.Games
                     }
                     else
                     {
-                        Stopwatch xmodelStopwatch = new Stopwatch();
-                        xmodelStopwatch.Start();
                         if (shared.data == 0)
                         {
                             byte[] buffer = XSub.ExtractXSubPackage(xmodelSurfs.xpakKey, shared.dataSize);
@@ -144,8 +138,6 @@ namespace DotnesktRemastered.Games
                         {
                             xmodelMeshes = ReadXModelMeshes(xmodel, shared.data, false);
                         }
-                        xmodelStopwatch.Stop();
-                        Log.Information("Read xmodel {xmodel:X} in {time} ms.", xmodelHash, xmodelStopwatch.ElapsedMilliseconds);
                         models[xmodelHash] = xmodelMeshes;
                         //pre register xmodel materials
                         foreach (var xmodelMesh in xmodelMeshes)

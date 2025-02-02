@@ -89,7 +89,7 @@ namespace DotnesktRemastered
                         }
                         break;
                     case "dump":
-                        if (args.Length <= 0)
+                        if (args.Length <= 0 || args[0] == "")
                         {
                             Log.Warning("Usage: dump <map_name>");
                             Log.Information("-nostaticprops                         : Skip static props");
