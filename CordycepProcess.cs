@@ -62,6 +62,21 @@ namespace DotnesktRemastered
             }
         }
 
+        public unsafe XAsset64 FindAsset(uint poolIdx, ulong hash)
+        {
+            nint poolPtr = (nint)(PoolsAddress + poolIdx * sizeof(XAssetPool64));
+            XAssetPool64 pool = ReadMemory<XAssetPool64>(poolPtr);
+            for (nint assetPtr = pool.Root; assetPtr != 0; assetPtr = ReadMemory<XAsset64>(assetPtr).Next)
+            {
+                XAsset64 asset = ReadMemory<XAsset64>(assetPtr);
+                if (asset.Header == 0) continue;
+                if (hash == ReadMemory<ulong>(asset.Header)) return asset;
+            }
+            return new XAsset64() {
+                Header = 0
+            };
+        }
+
         public void LoadState()
         {
             string statePath = System.IO.Path.Combine(WorkingEnvironment, "Data\\CurrentHandler.csi");
@@ -134,6 +149,12 @@ namespace DotnesktRemastered
             }
 
             return System.Text.Encoding.ASCII.GetString(bytes.ToArray());
+        }
+
+        public unsafe void WriteMemory<T>(nint address, T value) where T : unmanaged
+        {
+            var size = (nuint)Marshal.SizeOf<T>();
+            _ = PInvoke.WriteProcessMemory((HANDLE)ProcessHandle.DangerousGetHandle(), (void*)address, &value, size);
         }
     }
 }

@@ -135,10 +135,8 @@ namespace DotnesktRemastered.Structures
     {
         [FieldOffset(0)]
         public ulong hash;
-        [FieldOffset(8)]
-        public nint unkPtr0; // 16 bytes of yap, seems empty
-        [FieldOffset(16)]
-        public ulong transientZoneIndex;
+        [FieldOffset(20)]
+        public uint transientZoneIndex;
         [FieldOffset(24)]
         public MW6GfxWorldDrawVerts drawVerts;
     }

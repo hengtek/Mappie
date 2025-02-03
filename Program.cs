@@ -18,10 +18,12 @@ namespace DotnesktRemastered
         public delegate void DumpMapFunc(string name, bool noStaticProps = false, Vector3 staticPropsOrigin = new(), uint range = 0);
         public delegate string[] GetMapListFunc();
         public delegate void TestLmaoFunc();
+        public delegate void FixGfxWorldTransientZoneFunc();
 
         public static DumpMapFunc DumpMap;
         public static GetMapListFunc GetMapList;
         public static TestLmaoFunc TestLmao;
+        public static FixGfxWorldTransientZoneFunc FixGfxWorldTransientZone;
 
         static unsafe void Main(string[] args)
         {
@@ -53,6 +55,8 @@ namespace DotnesktRemastered
                     XSub.LoadFiles(Cordycep.GameDirectory);
                     DumpMap = Cordycep.IsSinglePlayer() ? ModernWarfare6SP.DumpMap : ModernWarfare6.DumpMap;
                     GetMapList = Cordycep.IsSinglePlayer() ? ModernWarfare6SP.GetMapList : ModernWarfare6.GetMapList;
+                    FixGfxWorldTransientZone = ModernWarfare6SP.FixGfxWorldTransientZone;
+                    FixGfxWorldTransientZone();
                     break;
                 case "BLACKOP6":
                     XSub.LoadFiles(Cordycep.GameDirectory);

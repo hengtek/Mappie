@@ -19,9 +19,48 @@ namespace DotnesktRemastered.Games
         public static CordycepProcess Cordycep = Program.Cordycep;
 
         private static uint GFXMAP_POOL_IDX = 50;
+        private static uint GFXMAP_TRZONE_POOL_IDX = 51;
+        private static uint STREAMING_INFO_POOL_IDX = 80;
 
         private static Dictionary<ulong, XModelMeshData[]> models = new Dictionary<ulong, XModelMeshData[]>();
-        public static void DumpMap(string name, bool noStaticProps = false, Vector3 staticPropsOrigin = new(), uint range = 0)
+
+        public static unsafe void FixGfxWorldTransientZone()
+        {
+            Cordycep.EnumerableAssetPool(STREAMING_INFO_POOL_IDX, (asset) =>
+            {
+                MW6SPStreamingInfo streamingInfo = Cordycep.ReadMemory<MW6SPStreamingInfo>(asset.Header);
+                MW6SPTransientInfo transientInfo = Cordycep.ReadMemory<MW6SPTransientInfo>(streamingInfo.transientInfoPtr);
+
+                MW6SPTransientAsset firstTransientAsset = Cordycep.ReadMemory<MW6SPTransientAsset>(transientInfo.transientAssets);
+
+                //Look for map
+                XAsset64 firstTransientAssetHeader = Cordycep.FindAsset(GFXMAP_POOL_IDX, firstTransientAsset.hash);
+                if(firstTransientAssetHeader.Header == 0)
+                {
+                    return;
+                }
+
+                string mapName = Cordycep.ReadString(firstTransientAsset.name);
+
+                for (int i = 1; i < transientInfo.transientAssetCount; i++)
+                {
+                    MW6SPTransientAsset transientAsset = Cordycep.ReadMemory <MW6SPTransientAsset>(transientInfo.transientAssets + i * sizeof(MW6SPTransientAsset));
+                    string fastFileName = Cordycep.ReadString(transientAsset.name);
+                    if (!fastFileName.EndsWith("tr")) continue;
+                    XAsset64 transientAssetHeader = Cordycep.FindAsset(GFXMAP_TRZONE_POOL_IDX, transientAsset.hash);
+                    if (transientAssetHeader.Header == 0)
+                    {
+                        Log.Warning("Transient zone {fastFileName} is missing.", fastFileName);
+                        continue;
+                    }
+                    MW6GfxWorldTransientZone transientZone = Cordycep.ReadMemory<MW6GfxWorldTransientZone>(transientAssetHeader.Header);
+                    nint transientZoneOffset = (nint)(firstTransientAssetHeader.Header + 5656 + transientZone.transientZoneIndex * 8);
+                    Cordycep.WriteMemory(transientZoneOffset, transientAssetHeader.Header);
+                }
+            });
+        }
+
+        public static unsafe void DumpMap(string name, bool noStaticProps = false, Vector3 staticPropsOrigin = new(), uint range = 0)
         {
             Log.Information("Finding map {baseName}...", name);
             bool found = false;
@@ -33,6 +72,8 @@ namespace DotnesktRemastered.Games
                 if (baseName == name)
                 {
                     Log.Information("Found map {0}, started dumping... :)", baseName);
+                    //Prechecking streaming info
+                    //Technically it's cordycep job
                     DumpMap(asset.Header, gfxWorld, baseName, noStaticProps, staticPropsOrigin, range);
                     Log.Information("Dumped map {0}. XD", baseName);
                     found = true;
@@ -73,7 +114,7 @@ namespace DotnesktRemastered.Games
             staticPropsModel.AddString("n", $"{baseName}_static_props_mesh");
             staticPropsModel.AddNode(staticPropsSkeleton);
 
-            MW6SPGfxWorldTransientZone[] transientZone = new MW6SPGfxWorldTransientZone[gfxWorld.transientZoneCount];
+            MW6GfxWorldTransientZone[] transientZone = new MW6GfxWorldTransientZone[gfxWorld.transientZoneCount];
 
             for (int i = 0; i < gfxWorld.transientZoneCount; i++)
             {
@@ -84,19 +125,19 @@ namespace DotnesktRemastered.Games
                         "this may happen when transient zone fast files are missing or not loaded in order", i);
                     continue;
                 }
-                transientZone[i] = Cordycep.ReadMemory<MW6SPGfxWorldTransientZone>((nint)gfxWorld.transientZones[i]);
+                transientZone[i] = Cordycep.ReadMemory<MW6GfxWorldTransientZone>((nint)gfxWorld.transientZones[i]);
             }
 
-            MW6SPGfxWorldSurfaces gfxWorldSurfaces = gfxWorld.surfaces;
+            MW6GfxWorldSurfaces gfxWorldSurfaces = gfxWorld.surfaces;
             MeshData[] meshes = new MeshData[gfxWorldSurfaces.count];
 
             Log.Information("Reading {count} surfaces...", gfxWorldSurfaces.count);
             stopwatch.Start();
             for (int i = 0; i < gfxWorldSurfaces.count; i++)
             {
-                MW6SPGfxSurface gfxSurface = Cordycep.ReadMemory<MW6SPGfxSurface>(gfxWorldSurfaces.surfaces + i * sizeof(MW6SPGfxSurface));
-                MW6SPGfxUgbSurfData ugbSurfData = Cordycep.ReadMemory<MW6SPGfxUgbSurfData>(gfxWorldSurfaces.ugbSurfData + (nint)(gfxSurface.ugbSurfDataIndex * sizeof(MW6SPGfxUgbSurfData)));
-                MW6SPGfxWorldTransientZone zone = transientZone[ugbSurfData.transientZoneIndex];
+                MW6GfxSurface gfxSurface = Cordycep.ReadMemory<MW6GfxSurface>(gfxWorldSurfaces.surfaces + i * sizeof(MW6GfxSurface));
+                MW6GfxUgbSurfData ugbSurfData = Cordycep.ReadMemory<MW6GfxUgbSurfData>(gfxWorldSurfaces.ugbSurfData + (nint)(gfxSurface.ugbSurfDataIndex * sizeof(MW6GfxUgbSurfData)));
+                MW6GfxWorldTransientZone zone = transientZone[ugbSurfData.transientZoneIndex];
                 if (zone.hash == 0) continue;
                 nint materialPtr = Cordycep.ReadMemory<nint>(gfxWorldSurfaces.materials + (nint)(gfxSurface.materialIndex * 8));
                 MW6SPMaterial material = Cordycep.ReadMemory<MW6SPMaterial>(materialPtr);
@@ -117,12 +158,12 @@ namespace DotnesktRemastered.Games
                 Log.Information("Reading {count} static models...", gfxWorld.smodels.collectionsCount);
                 stopwatch.Start();
 
-                MW6SPGfxWorldStaticModels smodels = gfxWorld.smodels;
+                MW6GfxWorldStaticModels smodels = gfxWorld.smodels;
                 for (int i = 0; i < smodels.collectionsCount; i++)
                 {
-                    MW6SPGfxStaticModelCollection collection = Cordycep.ReadMemory<MW6SPGfxStaticModelCollection>(smodels.collections + i * sizeof(MW6SPGfxStaticModelCollection));
-                    MW6SPGfxStaticModel staticModel = Cordycep.ReadMemory<MW6SPGfxStaticModel>(smodels.smodels + collection.smodelIndex * sizeof(MW6SPGfxStaticModel));
-                    MW6SPGfxWorldTransientZone zone = transientZone[collection.transientGfxWorldPlaced];
+                    MW6GfxStaticModelCollection collection = Cordycep.ReadMemory<MW6GfxStaticModelCollection>(smodels.collections + i * sizeof(MW6GfxStaticModelCollection));
+                    MW6GfxStaticModel staticModel = Cordycep.ReadMemory<MW6GfxStaticModel>(smodels.smodels + collection.smodelIndex * sizeof(MW6GfxStaticModel));
+                    MW6GfxWorldTransientZone zone = transientZone[collection.transientGfxWorldPlaced];
 
                     if (zone.hash == 0) continue;
 
@@ -130,9 +171,9 @@ namespace DotnesktRemastered.Games
 
                     ulong xmodelHash = xmodel.hash & 0x0FFFFFFFFFFFFFFF;
 
-                    MW6SPXModelLodInfo lodInfo = Cordycep.ReadMemory<MW6SPXModelLodInfo>(xmodel.lodInfo);
-                    MW6SPXModelSurfs xmodelSurfs = Cordycep.ReadMemory<MW6SPXModelSurfs>(lodInfo.modelSurfsStaging);
-                    MW6SPXSurfaceShared shared = Cordycep.ReadMemory<MW6SPXSurfaceShared>(xmodelSurfs.shared);
+                    MW6XModelLodInfo lodInfo = Cordycep.ReadMemory<MW6XModelLodInfo>(xmodel.lodInfo);
+                    MW6XModelSurfs xmodelSurfs = Cordycep.ReadMemory<MW6XModelSurfs>(lodInfo.modelSurfsStaging);
+                    MW6XSurfaceShared shared = Cordycep.ReadMemory<MW6XSurfaceShared>(xmodelSurfs.shared);
 
                     XModelMeshData[] xmodelMeshes;
                     if (models.ContainsKey(xmodelHash))
@@ -165,7 +206,7 @@ namespace DotnesktRemastered.Games
                     int instanceId = (int)collection.firstInstance;
                     while (instanceId < collection.firstInstance + collection.instanceCount)
                     {
-                        MW6SPGfxSModelInstanceData instanceData = Cordycep.ReadMemory<MW6SPGfxSModelInstanceData>((nint)smodels.instanceData + instanceId * sizeof(MW6SPGfxSModelInstanceData));
+                        MW6GfxSModelInstanceData instanceData = Cordycep.ReadMemory<MW6GfxSModelInstanceData>((nint)smodels.instanceData + instanceId * sizeof(MW6GfxSModelInstanceData));
 
                         Vector3 translation = new Vector3(
                             (float)instanceData.translation[0] * 0.000244140625f,
@@ -320,7 +361,7 @@ namespace DotnesktRemastered.Games
             for (int i = 0; i < material.textureCount; i++)
             {
                 MW6SPMaterialTextureDef textureDef = Cordycep.ReadMemory<MW6SPMaterialTextureDef>(material.textureTable + i * sizeof(MW6SPMaterialTextureDef));
-                MW6SPGfxImage image = Cordycep.ReadMemory<MW6SPGfxImage>(textureDef.imagePtr);
+                MW6GfxImage image = Cordycep.ReadMemory<MW6GfxImage>(textureDef.imagePtr);
 
                 int uvMapIndex = 0;
 
@@ -344,13 +385,13 @@ namespace DotnesktRemastered.Games
                 //instead of using actual semantic value, we can guess them base on the texture index, hf
 
                 string textureSemantic;
-                if (!Enum.IsDefined(typeof(MW6SPTextureIdxTable), (int)textureDef.index))
+                if (!Enum.IsDefined(typeof(MW6TextureIdxTable), (int)textureDef.index))
                 {
                     textureSemantic = $"unknown_texture_{textureDef.index}";
                 }
                 else
                 {
-                    textureSemantic = ((MW6SPTextureIdxTable)textureDef.index).ToString().ToLower();
+                    textureSemantic = ((MW6TextureIdxTable)textureDef.index).ToString().ToLower();
                 }
 
                 textures.Add(new()
@@ -362,9 +403,9 @@ namespace DotnesktRemastered.Games
             return textures;
         }
 
-        private static unsafe MeshData ReadMesh(MW6SPGfxSurface gfxSurface, MW6SPGfxUgbSurfData ugbSurfData, MW6SPMaterial material,MW6SPGfxWorldTransientZone zone)
+        private static unsafe MeshData ReadMesh(MW6GfxSurface gfxSurface, MW6GfxUgbSurfData ugbSurfData, MW6SPMaterial material,MW6GfxWorldTransientZone zone)
         {
-            MW6SPGfxWorldDrawOffset worldDrawOffset = ugbSurfData.worldDrawOffset;
+            MW6GfxWorldDrawOffset worldDrawOffset = ugbSurfData.worldDrawOffset;
 
             MeshNode mesh = new MeshNode();
 
@@ -455,13 +496,13 @@ namespace DotnesktRemastered.Games
 
         private static unsafe XModelMeshData[] ReadXModelMeshes(MW6SPXModel xmodel, nint shared, bool isLocal = false)
         {
-            MW6SPXModelLodInfo lodInfo = Cordycep.ReadMemory<MW6SPXModelLodInfo>(xmodel.lodInfo);
-            MW6SPXModelSurfs xmodelSurfs = Cordycep.ReadMemory<MW6SPXModelSurfs>(lodInfo.modelSurfsStaging);
+            MW6XModelLodInfo lodInfo = Cordycep.ReadMemory<MW6XModelLodInfo>(xmodel.lodInfo);
+            MW6XModelSurfs xmodelSurfs = Cordycep.ReadMemory<MW6XModelSurfs>(lodInfo.modelSurfsStaging);
             XModelMeshData[] meshes = new XModelMeshData[xmodelSurfs.numsurfs];
 
             for (int i = 0; i < lodInfo.numsurfs; i++)
             {
-                MW6SPXSurface surface = Cordycep.ReadMemory<MW6SPXSurface>((nint)xmodelSurfs.surfs + i * sizeof(MW6SPXSurface));
+                MW6XSurface surface = Cordycep.ReadMemory<MW6XSurface>((nint)xmodelSurfs.surfs + i * sizeof(MW6XSurface));
                 MW6SPMaterial material = Cordycep.ReadMemory<MW6SPMaterial>(Cordycep.ReadMemory<nint>(xmodel.materialHandles + i * 8));
 
                 XModelMeshData mesh = new XModelMeshData() {
