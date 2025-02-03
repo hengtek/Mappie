@@ -65,34 +65,5 @@ namespace DotnesktRemastered.Structures
         [FieldOffset(272)]
         public nint lodInfo;
     }
-
-    [StructLayout(LayoutKind.Explicit, Size = 24)]
-    public unsafe struct MW6SPTransientAsset
-    {
-        [FieldOffset(0)]
-        public nint name;
-        [FieldOffset(8)]
-        public ulong hash;
-        [FieldOffset(16)]
-        public fixed ushort unkFlags[4]; // index? type? flag?
-    }
-
-    [StructLayout(LayoutKind.Explicit, Size = 192)]
-    public unsafe struct MW6SPTransientInfo
-    {
-        [FieldOffset(112)]
-        public nint transientAssets;
-        [FieldOffset(168)]
-        public uint transientAssetCount; // size: 24
-    }
-
-    [StructLayout(LayoutKind.Explicit, Size = 168)]
-    public unsafe struct MW6SPStreamingInfo
-    {
-        [FieldOffset(0)]
-        public ulong hash;
-        [FieldOffset(152)]
-        public nint transientInfoPtr;
-    }
 }
 

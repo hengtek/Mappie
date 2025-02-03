@@ -28,31 +28,33 @@ namespace DotnesktRemastered.Games
         {
             Cordycep.EnumerableAssetPool(STREAMING_INFO_POOL_IDX, (asset) =>
             {
-                MW6SPStreamingInfo streamingInfo = Cordycep.ReadMemory<MW6SPStreamingInfo>(asset.Header);
-                MW6SPTransientInfo transientInfo = Cordycep.ReadMemory<MW6SPTransientInfo>(streamingInfo.transientInfoPtr);
+                MW6StreamingInfo streamingInfo = Cordycep.ReadMemory<MW6StreamingInfo>(asset.Header);
+                MW6TransientInfo transientInfo = Cordycep.ReadMemory<MW6TransientInfo>(streamingInfo.transientInfoPtr);
 
-                MW6SPTransientAsset firstTransientAsset = Cordycep.ReadMemory<MW6SPTransientAsset>(transientInfo.transientAssets);
+                MW6TransientAsset firstTransientAsset = Cordycep.ReadMemory<MW6TransientAsset>(transientInfo.transientAssets);
 
                 //Look for map
                 XAsset64 firstTransientAssetHeader = Cordycep.FindAsset(GFXMAP_POOL_IDX, firstTransientAsset.hash);
-                if(firstTransientAssetHeader.Header == 0)
-                {
-                    return;
-                }
+
+                if (firstTransientAssetHeader.Header == 0) return;
 
                 string mapName = Cordycep.ReadString(firstTransientAsset.name);
 
                 for (int i = 1; i < transientInfo.transientAssetCount; i++)
                 {
-                    MW6SPTransientAsset transientAsset = Cordycep.ReadMemory <MW6SPTransientAsset>(transientInfo.transientAssets + i * sizeof(MW6SPTransientAsset));
+                    MW6TransientAsset transientAsset = Cordycep.ReadMemory <MW6TransientAsset>(transientInfo.transientAssets + i * sizeof(MW6TransientAsset));
                     string fastFileName = Cordycep.ReadString(transientAsset.name);
+
                     if (!fastFileName.EndsWith("tr")) continue;
+
                     XAsset64 transientAssetHeader = Cordycep.FindAsset(GFXMAP_TRZONE_POOL_IDX, transientAsset.hash);
+
                     if (transientAssetHeader.Header == 0)
                     {
                         Log.Warning("Transient zone {fastFileName} is missing.", fastFileName);
                         continue;
                     }
+
                     MW6GfxWorldTransientZone transientZone = Cordycep.ReadMemory<MW6GfxWorldTransientZone>(transientAssetHeader.Header);
                     nint transientZoneOffset = (nint)(firstTransientAssetHeader.Header + 5656 + transientZone.transientZoneIndex * 8);
                     Cordycep.WriteMemory(transientZoneOffset, transientAssetHeader.Header);
@@ -62,6 +64,9 @@ namespace DotnesktRemastered.Games
 
         public static unsafe void DumpMap(string name, bool noStaticProps = false, Vector3 staticPropsOrigin = new(), uint range = 0)
         {
+            //Okay we shouldn't do this but whatever idgaf
+            FixGfxWorldTransientZone();
+
             Log.Information("Finding map {baseName}...", name);
             bool found = false;
             Cordycep.EnumerableAssetPool(GFXMAP_POOL_IDX, (asset) =>
@@ -72,8 +77,6 @@ namespace DotnesktRemastered.Games
                 if (baseName == name)
                 {
                     Log.Information("Found map {0}, started dumping... :)", baseName);
-                    //Prechecking streaming info
-                    //Technically it's cordycep job
                     DumpMap(asset.Header, gfxWorld, baseName, noStaticProps, staticPropsOrigin, range);
                     Log.Information("Dumped map {0}. XD", baseName);
                     found = true;
