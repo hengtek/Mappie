@@ -20,53 +20,11 @@ namespace DotnesktRemastered.Games
 
         private static uint GFXMAP_POOL_IDX = 50;
         private static uint GFXMAP_TRZONE_POOL_IDX = 51;
-        private static uint STREAMING_INFO_POOL_IDX = 80;
 
         private static Dictionary<ulong, XModelMeshData[]> models = new Dictionary<ulong, XModelMeshData[]>();
 
-        public static unsafe void FixGfxWorldTransientZone()
-        {
-            Cordycep.EnumerableAssetPool(STREAMING_INFO_POOL_IDX, (asset) =>
-            {
-                MW6StreamingInfo streamingInfo = Cordycep.ReadMemory<MW6StreamingInfo>(asset.Header);
-                MW6TransientInfo transientInfo = Cordycep.ReadMemory<MW6TransientInfo>(streamingInfo.transientInfoPtr);
-
-                MW6TransientAsset firstTransientAsset = Cordycep.ReadMemory<MW6TransientAsset>(transientInfo.transientAssets);
-
-                //Look for map
-                XAsset64 firstTransientAssetHeader = Cordycep.FindAsset(GFXMAP_POOL_IDX, firstTransientAsset.hash);
-
-                if (firstTransientAssetHeader.Header == 0) return;
-
-                string mapName = Cordycep.ReadString(firstTransientAsset.name);
-
-                for (int i = 1; i < transientInfo.transientAssetCount; i++)
-                {
-                    MW6TransientAsset transientAsset = Cordycep.ReadMemory <MW6TransientAsset>(transientInfo.transientAssets + i * sizeof(MW6TransientAsset));
-                    string fastFileName = Cordycep.ReadString(transientAsset.name);
-
-                    if (!fastFileName.EndsWith("tr")) continue;
-
-                    XAsset64 transientAssetHeader = Cordycep.FindAsset(GFXMAP_TRZONE_POOL_IDX, transientAsset.hash);
-
-                    if (transientAssetHeader.Header == 0)
-                    {
-                        Log.Warning("Transient zone {fastFileName} is missing.", fastFileName);
-                        continue;
-                    }
-
-                    MW6GfxWorldTransientZone transientZone = Cordycep.ReadMemory<MW6GfxWorldTransientZone>(transientAssetHeader.Header);
-                    nint transientZoneOffset = (nint)(firstTransientAssetHeader.Header + 5656 + transientZone.transientZoneIndex * 8);
-                    Cordycep.WriteMemory(transientZoneOffset, transientAssetHeader.Header);
-                }
-            });
-        }
-
         public static unsafe void DumpMap(string name, bool noStaticProps = false, Vector3 staticPropsOrigin = new(), uint range = 0)
         {
-            //Okay we shouldn't do this but whatever idgaf
-            FixGfxWorldTransientZone();
-
             Log.Information("Finding map {baseName}...", name);
             bool found = false;
             Cordycep.EnumerableAssetPool(GFXMAP_POOL_IDX, (asset) =>

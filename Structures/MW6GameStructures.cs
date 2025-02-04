@@ -336,36 +336,6 @@ namespace DotnesktRemastered.Structures
         [FieldOffset(196)]
         public float max;
     }
-
-    [StructLayout(LayoutKind.Explicit, Size = 24)]
-    public unsafe struct MW6TransientAsset
-    {
-        [FieldOffset(0)]
-        public nint name;
-        [FieldOffset(8)]
-        public ulong hash;
-        [FieldOffset(16)]
-        public fixed ushort unkFlags[4]; // index? type? flag?
-    }
-
-    [StructLayout(LayoutKind.Explicit, Size = 192)]
-    public unsafe struct MW6TransientInfo
-    {
-        [FieldOffset(112)]
-        public nint transientAssets;
-        [FieldOffset(168)]
-        public uint transientAssetCount; // size: 24
-    }
-
-    [StructLayout(LayoutKind.Explicit, Size = 168)]
-    public unsafe struct MW6StreamingInfo
-    {
-        [FieldOffset(0)]
-        public ulong hash;
-        [FieldOffset(152)]
-        public nint transientInfoPtr;
-    }
-
     public enum MW6TextureIdxTable
     {
         DIFFUSE_MAP = 0,

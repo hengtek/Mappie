@@ -17,11 +17,9 @@ namespace DotnesktRemastered
 
         public delegate void DumpMapFunc(string name, bool noStaticProps = false, Vector3 staticPropsOrigin = new(), uint range = 0);
         public delegate string[] GetMapListFunc();
-        public delegate void TestLmaoFunc();
 
         public static DumpMapFunc DumpMap;
         public static GetMapListFunc GetMapList;
-        public static TestLmaoFunc TestLmao;
 
         static unsafe void Main(string[] args)
         {
@@ -58,7 +56,6 @@ namespace DotnesktRemastered
                     XSub.LoadFiles(Cordycep.GameDirectory);
                     DumpMap = BlackOps6.DumpMap;
                     GetMapList = BlackOps6.GetMapList;
-                    TestLmao = BlackOps6.TestLmao;
                     break;
                 default:
                     Log.Error("Game is not supported. :(");
@@ -82,10 +79,6 @@ namespace DotnesktRemastered
                 {
                     case "help":
                         Log.Information("Commands: list, dump");
-                        break;
-                    case "t":
-                    case "test":
-                        TestLmao();
                         break;
                     case "list":
                         string[] maps = GetMapList();
