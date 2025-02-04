@@ -260,7 +260,8 @@ namespace DotnesktRemastered.Games
             root.AddNode(staticPropsModel);
             CastWriter.Save(Path.Join(outputFolder, $"{baseName}_static_props_mesh.cast"), root);
 
-            List<string> exportedImages = new();
+            List<string> exportedBaseImages = new();
+            List<string> exportedStaticPropsImages = new();
 
             //Exporting materials
             //Base mesh
@@ -277,9 +278,9 @@ namespace DotnesktRemastered.Games
                     semanticTxt.AppendLine();
                     semanticTxt.Append($"{texture.semantic}, {texture.texture}");
 
-                    if(!exportedImages.Contains(texture.texture))
+                    if(!exportedBaseImages.Contains(texture.texture))
                     {
-                        exportedImages.Add(texture.texture);
+                        exportedBaseImages.Add(texture.texture);
                     }
                 }
                 File.WriteAllText(materialPath, semanticTxt.ToString());
@@ -299,9 +300,9 @@ namespace DotnesktRemastered.Games
                         semanticTxt.AppendLine();
                         semanticTxt.Append($"{texture.semantic}, {texture.texture}");
 
-                        if (!exportedImages.Contains(texture.texture))
+                        if (!exportedStaticPropsImages.Contains(texture.texture))
                         {
-                            exportedImages.Add(texture.texture);
+                            exportedStaticPropsImages.Add(texture.texture);
                         }
                     }
                     File.WriteAllText(materialPath, semanticTxt.ToString());
@@ -309,7 +310,8 @@ namespace DotnesktRemastered.Games
             }
 
             //Used for greyhound mass export
-            File.WriteAllText(Path.Join(outputFolder, "global_images_list.txt"), string.Join(" ,", exportedImages));
+            File.WriteAllText(Path.Join(outputFolder, "base_mesh_images_list.txt"), string.Join(" ,", exportedBaseImages));
+            File.WriteAllText(Path.Join(outputFolder, "static_props_images_list.txt"), string.Join(" ,", exportedStaticPropsImages));
 
             stopwatch.Stop();
             Log.Information("Exported {baseName} in {time} ms.", baseName, stopwatch.ElapsedMilliseconds);
