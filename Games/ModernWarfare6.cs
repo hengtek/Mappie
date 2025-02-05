@@ -142,11 +142,6 @@ namespace DotnesktRemastered.Games
                             xmodelMeshes = ReadXModelMeshes(xmodel, shared.data, false);
                         }
                         models[xmodelHash] = xmodelMeshes;
-                        //pre register xmodel materials
-                        foreach (var xmodelMesh in xmodelMeshes)
-                        {
-                            staticPropsModel.AddNode(xmodelMesh.material);
-                        }
                     }
 
                     string xmodelName = Cordycep.ReadString(xmodel.name);
@@ -221,6 +216,7 @@ namespace DotnesktRemastered.Games
                             }
 
                             staticPropsModel.AddNode(meshNode);
+                            staticPropsModel.AddNode(xmodelMesh.material);
                         }
                         instanceId++;
                     }
