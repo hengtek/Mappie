@@ -31,6 +31,7 @@ namespace DotnesktRemastered
             if (processes.Length <= 0)
             {
                 Log.Error("Cordycep.CLI is not running. Please start the CLI first.");
+                Console.ReadKey();
                 return;
             }
             Cordycep = new CordycepProcess(processes[0]);
