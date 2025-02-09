@@ -19,27 +19,25 @@ namespace DotnesktRemastered.FileStorage
     {
         public static CordycepProcess Cordycep = Program.Cordycep;
 
+        public static string[] files { get; set; }
+
         public static Dictionary<ulong, PackageCacheObject> CacheObjects = new Dictionary<ulong, PackageCacheObject>();
-
-        //TODO
-        public static void InitializeCasc(string gamePath)
-        {
-
-        }
 
         public static void LoadFiles(string gamePath)
         {
-            string[] files = System.IO.Directory.GetFiles(gamePath, "*.xsub", SearchOption.AllDirectories);
+            files = System.IO.Directory.GetFiles(gamePath, "*.xsub", SearchOption.AllDirectories);
+            int fileIndex = 0;
             foreach (string file in files)
             {
                 BinaryReader reader = new BinaryReader(File.Open(file, FileMode.Open));
-                ReadXSub(reader, file);
+                ReadXSub(reader, file, fileIndex, CacheObjects);
                 reader.Close();
+                fileIndex++;
             }
             //dump test
         }
 
-        private static void ReadXSub(BinaryReader reader, string filePath)
+        public static void ReadXSub(BinaryReader reader, string filePath, int fileIndex, Dictionary<ulong, PackageCacheObject> assetPackages)
         {
             uint magic = reader.ReadUInt32();
             ushort unknown1 = reader.ReadUInt16();
@@ -79,13 +77,14 @@ namespace DotnesktRemastered.FileStorage
                     Offset = (packedInfo >> 32) << 7,
                     CompressedSize = (packedInfo >> 1) & 0x3FFFFFFF,
                     UncompressedSize = 0,
-                    PackageFilePath = filePath
+                    PackageFileIndex = fileIndex
                 };
 
-                if (!CacheObjects.ContainsKey(key))
-                    CacheObjects.Add(key, cacheObject);
+                if (!assetPackages.ContainsKey(key))
+                    assetPackages.Add(key, cacheObject);
             }
         }
+
         public static unsafe byte[] ExtractXSubPackage(ulong key, uint size)
         {
             if (!CacheObjects.ContainsKey(key))
@@ -98,7 +97,10 @@ namespace DotnesktRemastered.FileStorage
             stopwatch.Start();
 
             PackageCacheObject cacheObject = CacheObjects[key];
-            BinaryReader reader = new BinaryReader(File.Open(cacheObject.PackageFilePath, FileMode.Open));
+
+            var XSUBFileName = files[(int)cacheObject.PackageFileIndex];
+
+            BinaryReader reader = new BinaryReader(File.Open(XSUBFileName, FileMode.Open));
 
             ulong dataRead = 0;
             int totalSize = 0;
@@ -183,7 +185,7 @@ namespace DotnesktRemastered.FileStorage
         // The size of this object uncompressed
         public ulong UncompressedSize;
         // The index of the package file used for this
-        public string PackageFilePath;
+        public int PackageFileIndex;
     }
 
     public struct XSubBlock

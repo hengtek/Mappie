@@ -130,27 +130,43 @@ namespace DotnesktRemastered.Games
                 BO6XModelSurfs xmodelSurfs = Cordycep.ReadMemory<BO6XModelSurfs>(lodInfo.modelSurfsStaging);
                 BO6XSurfaceShared shared = Cordycep.ReadMemory<BO6XSurfaceShared>(xmodelSurfs.shared);
 
-                XModelMeshData[] xmodelMeshes;
+                XModelMeshData[] xmodelMeshes = new XModelMeshData[0];
+
                 if (models.TryGetValue(xmodel.hash, out var existingMeshes))
                 {
                     xmodelMeshes = existingMeshes;
                 }
                 else
                 {
-                    if (shared.data == 0)
+                    // See if we have data from memory
+                    if (shared.data != 0)
+                    {
+                        xmodelMeshes = ReadXModelMeshes(xmodel, shared.data, false);
+
+                        models[xmodel.hash] = xmodelMeshes;
+                    }
+                    // If not, Check XSub Cache
+                    else if (shared.data == 0 && XSub.CacheObjects.ContainsKey(shared.xpakKey))
                     {
                         byte[] buffer = XSub.ExtractXSubPackage(shared.xpakKey, shared.dataSize);
                         nint sharedPtr = Marshal.AllocHGlobal((int)shared.dataSize);
                         Marshal.Copy(buffer, 0, sharedPtr, (int)shared.dataSize);
-                        xmodelMeshes = ReadXModelMeshes(xmodel, sharedPtr, true);
+                        xmodelMeshes = ReadXModelMeshes(xmodel, (nint)sharedPtr, true);
                         Marshal.FreeHGlobal(sharedPtr);
-                    }
-                    else
-                    {
-                        xmodelMeshes = ReadXModelMeshes(xmodel, shared.data, false);
-                    }
 
-                    models[xmodel.hash] = xmodelMeshes;
+                        models[xmodel.hash] = xmodelMeshes;
+                    }
+                    // If XSub wasn't successful, Check CASC Cache
+                    else if (shared.data == 0 && CASCPackage.Assets.ContainsKey(shared.xpakKey))
+                    {
+                        byte[] buffer = CASCPackage.ExtractXSubPackage(shared.xpakKey, shared.dataSize);
+                        nint sharedPtr = Marshal.AllocHGlobal((int)shared.dataSize);
+                        Marshal.Copy(buffer, 0, sharedPtr, (int)shared.dataSize);
+                        xmodelMeshes = ReadXModelMeshes(xmodel, (nint)sharedPtr, true);
+                        Marshal.FreeHGlobal(sharedPtr);
+
+                        models[xmodel.hash] = xmodelMeshes;
+                    }
 
                     // Pre-register xmodel materials
                     foreach (var xmodelMesh in xmodelMeshes)

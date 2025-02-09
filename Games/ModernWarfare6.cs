@@ -122,26 +122,43 @@ namespace DotnesktRemastered.Games
                     MW6XModelSurfs xmodelSurfs = Cordycep.ReadMemory<MW6XModelSurfs>(lodInfo.modelSurfsStaging);
                     MW6XSurfaceShared shared = Cordycep.ReadMemory<MW6XSurfaceShared>(xmodelSurfs.shared);
 
-                    XModelMeshData[] xmodelMeshes;
+                    XModelMeshData[] xmodelMeshes = new XModelMeshData[0];
+
                     if (models.ContainsKey(xmodelHash))
                     {
                         xmodelMeshes = models[xmodelHash];
                     }
                     else
                     {
-                        if (shared.data == 0)
+                        // See if we have data from memory
+                        if (shared.data != 0)
+                        {
+                            xmodelMeshes = ReadXModelMeshes(xmodel, shared.data, false);
+
+                            models[xmodelHash] = xmodelMeshes;
+                        }
+                        // If not, Check XSub Cache
+                        else if (shared.data == 0 && XSub.CacheObjects.ContainsKey(xmodelSurfs.xpakKey))
                         {
                             byte[] buffer = XSub.ExtractXSubPackage(xmodelSurfs.xpakKey, shared.dataSize);
                             nint sharedPtr = Marshal.AllocHGlobal((int)shared.dataSize);
                             Marshal.Copy(buffer, 0, sharedPtr, (int)shared.dataSize);
                             xmodelMeshes = ReadXModelMeshes(xmodel, (nint)sharedPtr, true);
                             Marshal.FreeHGlobal(sharedPtr);
+
+                            models[xmodelHash] = xmodelMeshes;
                         }
-                        else
+                        // If XSub wasn't successful, Check CASC Cache
+                        else if (shared.data == 0 && CASCPackage.Assets.ContainsKey(xmodelSurfs.xpakKey))
                         {
-                            xmodelMeshes = ReadXModelMeshes(xmodel, shared.data, false);
+                            byte[] buffer = CASCPackage.ExtractXSubPackage(xmodelSurfs.xpakKey, shared.dataSize);
+                            nint sharedPtr = Marshal.AllocHGlobal((int)shared.dataSize);
+                            Marshal.Copy(buffer, 0, sharedPtr, (int)shared.dataSize);
+                            xmodelMeshes = ReadXModelMeshes(xmodel, (nint)sharedPtr, true);
+                            Marshal.FreeHGlobal(sharedPtr);
+
+                            models[xmodelHash] = xmodelMeshes;
                         }
-                        models[xmodelHash] = xmodelMeshes;
                     }
 
                     string xmodelName = Cordycep.ReadString(xmodel.name);
