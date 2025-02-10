@@ -61,11 +61,13 @@ namespace DotnesktRemastered
             switch (gameId)
             {
                 case "YAMYAMOK":
+                    CASCPackage.LoadFiles(Cordycep.GameDirectory);
                     XSub.LoadFiles(Cordycep.GameDirectory);
                     DumpMap = Cordycep.IsSinglePlayer() ? ModernWarfare6SP.DumpMap : ModernWarfare6.DumpMap;
                     GetMapList = Cordycep.IsSinglePlayer() ? ModernWarfare6SP.GetMapList : ModernWarfare6.GetMapList;
                     break;
                 case "BLACKOP6":
+                    CASCPackage.LoadFiles(Cordycep.GameDirectory);
                     XSub.LoadFiles(Cordycep.GameDirectory);
                     DumpMap = BlackOps6.DumpMap;
                     GetMapList = BlackOps6.GetMapList;

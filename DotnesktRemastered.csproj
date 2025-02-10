@@ -33,4 +33,10 @@
 		</ContentWithTargetPath>
 	</ItemGroup>
 
+  <ItemGroup>
+    <Reference Include="PhilLibX.Interop">
+      <HintPath>Externals\PhilLibX.Interop.dll</HintPath>
+    </Reference>
+  </ItemGroup>
+
 </Project>

@@ -151,6 +151,27 @@ namespace DotnesktRemastered
             return System.Text.Encoding.ASCII.GetString(bytes.ToArray());
         }
 
+        public static T BytesToStruct<T>(byte[] data)
+        {
+            GCHandle handle = GCHandle.Alloc(data, GCHandleType.Pinned);
+            T theStructure = (T)Marshal.PtrToStructure(handle.AddrOfPinnedObject(), typeof(T));
+            handle.Free();
+            return theStructure;
+        }
+
+        public static T BytesToStruct<T>(byte[] data, int startIndex)
+        {
+            // Size of Struct
+            int size = Marshal.SizeOf<T>();
+            // Create new byte array
+            byte[] buffer = new byte[size];
+            //File.WriteAllText("test.txt", string.Format("startIndex = {0}", startIndex));
+            // Copy it
+            Buffer.BlockCopy(data, startIndex, buffer, 0, size);
+            // Return result
+            return BytesToStruct<T>(buffer);
+        }
+
         public unsafe void WriteMemory<T>(nint address, T value) where T : unmanaged
         {
             var size = (nuint)Marshal.SizeOf<T>();
