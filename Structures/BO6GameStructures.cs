@@ -210,9 +210,9 @@ namespace DotnesktRemastered.Structures
         public BO6GfxWorldSurfaces surfaces;
         [FieldOffset(608)]
         public BO6GfxWorldStaticModels smodels;
-        [FieldOffset(27508)]
+        [FieldOffset(27548)]
         public uint transientZoneCount;
-        [FieldOffset(27512)]
+        [FieldOffset(27552)]
         public fixed ulong transientZones[0x600];
     }
 
