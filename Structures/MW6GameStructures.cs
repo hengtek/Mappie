@@ -24,7 +24,7 @@ namespace DotnesktRemastered.Structures
         [FieldOffset(20)]
         public ushort triCount;
         [FieldOffset(22)]
-        public ushort packedIndiciesTableCount;
+        public ushort packedIndicesTableCount;
         [FieldOffset(24)]
         public ushort vertexCount;
         [FieldOffset(26)]
@@ -300,7 +300,7 @@ namespace DotnesktRemastered.Structures
     public unsafe struct MW6XSurface
     {
         [FieldOffset(4)]
-        public ushort packedIndiciesTableCount;
+        public ushort packedIndicesTableCount;
         [FieldOffset(24)]
         public uint vertCount;
         [FieldOffset(28)]

@@ -163,7 +163,7 @@ namespace DotnesktRemastered.Structures
         // [FieldOffset(80)]
         // public nint surfaces;
         [FieldOffset(104)]
-        public nint models;
+        public nint smodels;
         [FieldOffset(120)]
         public nint collections;
         [FieldOffset(200)]
@@ -173,7 +173,7 @@ namespace DotnesktRemastered.Structures
     [StructLayout(LayoutKind.Sequential, Size = 16)]
     public unsafe struct BO6GfxStaticModel
     {
-        public nint model;
+        public nint xmodel;
         public byte flags;
         public byte firstMtlSkinIndex;
         public ushort firstStaticModelSurfaceIndex;
@@ -221,6 +221,16 @@ namespace DotnesktRemastered.Structures
     {
         [FieldOffset(0)]
         public ulong hash;
+        [FieldOffset(24)]
+        public byte textureCount;
+        [FieldOffset(26)]
+        public byte layerCount;
+        [FieldOffset(27)]
+        public byte imageCount;
+        [FieldOffset(40)]
+        public nint textureTable;
+        [FieldOffset(48)]
+        public nint imageTable;
     }
 
     [StructLayout(LayoutKind.Explicit, Size = 248)]

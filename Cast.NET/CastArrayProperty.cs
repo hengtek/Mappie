@@ -148,6 +148,11 @@ namespace Cast.NET
         /// </summary>
         /// <param name="value">The value to add.</param>
         public void Add(T value) => Values.Add(value);
+        
+        public void AddRange(IEnumerable<T> items)
+        {
+            Values.AddRange(items);
+        }
 
         /// <summary>
         /// A map of supported types to identifiers.

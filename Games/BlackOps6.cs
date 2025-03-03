@@ -6,6 +6,7 @@ using DotnesktRemastered.Utils;
 using Serilog;
 using System;
 using System.Buffers.Binary;
+using System.Diagnostics;
 using System.Numerics;
 using System.Runtime.InteropServices;
 using System.Text;
@@ -13,31 +14,27 @@ using System.Xml.Linq;
 
 namespace DotnesktRemastered.Games
 {
-    public class BlackOps6
+    public class BlackOps6 : BaseGame<BO6GfxWorld, BO6GfxWorldTransientZone>
     {
-        public static CordycepProcess Cordycep = Program.Cordycep;
-
-        private static uint GFXMAP_POOL_IDX = 43;
-        private static uint STREAMINGINFO_POOL_IDX = 0x4F;
-
-        private static Dictionary<ulong, XModelMeshData[]> models = new();
-        public static void DumpMap(string name, bool noStaticProps = false, Vector3 staticPropsOrigin = new(), uint range = 0)
+        public BlackOps6()
         {
-            Log.Information("Finding map {0}...", name);
-            Cordycep.EnumerableAssetPool(GFXMAP_POOL_IDX, (asset) =>
-            {
-                BO6GfxWorld gfxWorld = Cordycep.ReadMemory<BO6GfxWorld>(asset.Header);
-                if (gfxWorld.baseName == 0) return;
-                string baseName = Cordycep.ReadString(gfxWorld.baseName).Trim();
-                if (baseName == name)
-                {
-                    Log.Information("Found map {0}, started dumping... :)", baseName);
-                    DumpMap(gfxWorld, baseName);
-                    Log.Information("Dumped map {0}. XD", baseName);
-                }
-            });
+            GFXMAP_POOL_IDX = 43;
+            GFXMAP_TRZONE_POOL_IDX = 0x4F;
         }
-        public static string[] GetMapList()
+
+        protected override string GameName => "BlackOps6";
+
+        protected override BO6GfxWorld ReadGfxWorld(IntPtr header)
+        {
+            return Cordycep.ReadMemory<BO6GfxWorld>(header);
+        }
+
+        protected override string GetBaseName(BO6GfxWorld gfxWorld)
+        {
+            return gfxWorld.baseName == 0 ? "" : Cordycep.ReadString(gfxWorld.baseName).Trim();
+        }
+
+        public override string[] GetMapList()
         {
             List<string> maps = new List<string>();
             Cordycep.EnumerableAssetPool(GFXMAP_POOL_IDX, (asset) =>
@@ -50,246 +47,333 @@ namespace DotnesktRemastered.Games
             return maps.ToArray();
         }
 
-        static void CreateDirectoryIfNotExists(string? path)
+        protected override unsafe void ReadTransientZones(MapProcessingContext context)
         {
-            if (path == null)
-                throw new Exception("The path cannot be null.");
-
-            if (!Directory.Exists(path))
-                Directory.CreateDirectory(path);
+            context.TransientZones = new BO6GfxWorldTransientZone[context.GfxWorld.transientZoneCount];
+            for (int i = 0; i < context.GfxWorld.transientZoneCount; i++)
+            {
+                BO6GfxWorld gfxWorld = context.GfxWorld;
+                context.TransientZones[i] = Cordycep.ReadMemory<BO6GfxWorldTransientZone>(
+                    (nint)gfxWorld.transientZones[i]);
+            }
         }
 
-        private static unsafe void DumpMap(BO6GfxWorld gfxWorld, string mapBaseName, bool noStaticProps = false, Vector3 staticPropsOrigin = new(), uint range = 0)
+        protected override unsafe void ProcessSurfaces(MapProcessingContext context)
         {
-            // Create a root for map
-            CastNode mapRoot = new CastNode(CastNodeIdentifier.Root);
+            BO6GfxWorldSurfaces surfaces = context.GfxWorld.surfaces;
+            context.Meshes.Capacity = (int)surfaces.count;
 
-            // Create a model for map geo
-            ModelNode mapGeoModel = new ModelNode();
-            SkeletonNode skeleton = new SkeletonNode();
-            mapGeoModel.AddString("n", $"{mapBaseName}_base_mesh");
-            mapGeoModel.AddNode(skeleton);
+            Log.Information("Reading {count} surfaces...", surfaces.count);
+            var stopwatch = Stopwatch.StartNew();
 
-            BO6GfxWorldTransientZone[] transientZone = new BO6GfxWorldTransientZone[gfxWorld.transientZoneCount];
-            for (int i = 0; i < gfxWorld.transientZoneCount; i++)
+            Parallel.For(0, surfaces.count, i =>
             {
-                var trZonePtr = (nint)gfxWorld.transientZones[i];
-                if (trZonePtr == 0)
-                    throw new Exception($"The transient zone with index {i} was missing.");
-
-                transientZone[i] = Cordycep.ReadMemory<BO6GfxWorldTransientZone>(trZonePtr); // TODO:
-            }
-            BO6GfxWorldSurfaces gfxWorldSurfaces = gfxWorld.surfaces;
-
-            MeshData[] meshes = new MeshData[gfxWorldSurfaces.count];
-            for (int i = 0; i < gfxWorldSurfaces.count; i++)
-            {
-                BO6GfxSurface gfxSurface = Cordycep.ReadMemory<BO6GfxSurface>(gfxWorldSurfaces.surfaces + i * sizeof(BO6GfxSurface));
-                BO6GfxUgbSurfData ugbSurfData = Cordycep.ReadMemory<BO6GfxUgbSurfData>(gfxWorldSurfaces.ugbSurfData + (nint)(gfxSurface.ugbSurfDataIndex * sizeof(BO6GfxUgbSurfData)));
-                BO6GfxWorldTransientZone zone = transientZone[ugbSurfData.transientZoneIndex];
-                nint materialPtr = Cordycep.ReadMemory<nint>(gfxWorldSurfaces.materials + (nint)(gfxSurface.materialIndex * 8));
+                BO6GfxWorldSurfaces gfxWorldSurfaces = context.GfxWorld.surfaces;
+                BO6GfxSurface gfxSurface = Cordycep.ReadMemory<BO6GfxSurface>((nint)(gfxWorldSurfaces.surfaces +
+                    i * sizeof(BO6GfxSurface)));
+                BO6GfxUgbSurfData ugbSurfData = Cordycep.ReadMemory<BO6GfxUgbSurfData>(
+                    gfxWorldSurfaces.ugbSurfData +
+                    (nint)(gfxSurface.ugbSurfDataIndex * sizeof(BO6GfxUgbSurfData)));
+                BO6GfxWorldTransientZone zone = context.TransientZones[ugbSurfData.transientZoneIndex];
+                if (zone.hash == 0) return;
+                nint materialPtr =
+                    Cordycep.ReadMemory<nint>(gfxWorldSurfaces.materials + (nint)(gfxSurface.materialIndex * 8));
                 BO6Material material = Cordycep.ReadMemory<BO6Material>(materialPtr);
-
                 MeshData mesh = ReadMesh(gfxSurface, ugbSurfData, material, zone);
 
-                mapGeoModel.AddNode(mesh.mesh);
-                mapGeoModel.AddNode(mesh.material);
+                lock (context.BaseMeshModel)
+                {
+                    context.BaseMeshModel.AddNode(mesh.mesh);
+                    context.BaseMeshModel.AddNode(mesh.material);
+                }
 
-                meshes[i] = mesh;
-            }
-            mapRoot.AddNode(mapGeoModel);
+                lock (context.Meshes)
+                {
+                    context.Meshes.Add(mesh);
+                }
+            });
 
-            /*MeshData[] meshes = new MeshData[gfxWorldSurfaces.btndSurfacesCount];
-            for (int i = 0; i < gfxWorldSurfaces.btndSurfacesCount; i++)
-            {
-                BO6GfxSurface gfxSurface = Cordycep.ReadMemory<BO6GfxSurface>(gfxWorldSurfaces.btndSurfaces + i * sizeof(BO6GfxSurface));
-                BO6GfxUgbSurfData ugbSurfData = Cordycep.ReadMemory<BO6GfxUgbSurfData>(gfxWorldSurfaces.ugbSurfData + (nint)(gfxSurface.ugbSurfDataIndex * sizeof(BO6GfxUgbSurfData)));
-                BO6GfxWorldTransientZone zone = transientZone[ugbSurfData.transientZoneIndex];
-                nint materialPtr = Cordycep.ReadMemory<nint>(gfxWorldSurfaces.materials + (nint)(gfxSurface.materialIndex * 8));
-                BO6Material material = Cordycep.ReadMemory<BO6Material>(materialPtr);
+            stopwatch.Stop();
+            Log.Information("Read {count} surfaces in {time} ms.", surfaces.count, stopwatch.ElapsedMilliseconds);
+        }
 
-                MeshData mesh = ReadMesh(gfxSurface, ugbSurfData, material, zone);
+        protected override void ProcessStaticModelsForJson(MapProcessingContext context)
+        {
+            BO6GfxWorldStaticModels smodels = context.GfxWorld.smodels;
+            Log.Information("Reading {count} static models...", smodels.collectionsCount);
+            var stopwatch = Stopwatch.StartNew();
 
-                mapGeoModel.AddNode(mesh.mesh);
-                mapGeoModel.AddNode(mesh.material);
-
-                meshes[i] = mesh;
-            }
-            mapRoot.AddNode(mapGeoModel);*/
-
-            // Static prop xmodels
-            BO6GfxWorldStaticModels smodels = gfxWorld.smodels;
             for (int i = 0; i < smodels.collectionsCount; i++)
             {
-                BO6GfxStaticModelCollection collection = Cordycep.ReadMemory<BO6GfxStaticModelCollection>(smodels.collections + i * sizeof(BO6GfxStaticModelCollection));
-                BO6GfxStaticModel staticModel = Cordycep.ReadMemory<BO6GfxStaticModel>(smodels.models + collection.smodelIndex * sizeof(BO6GfxStaticModel));
-                // BO6GfxWorldTransientZone zone = transientZone[collection.transientGfxWorldPlaced];
-                BO6XModel xmodel = Cordycep.ReadMemory<BO6XModel>(staticModel.model);
+                ProcessStaticModelJson(smodels, i, context);
+            }
 
-                BO6XModelLodInfo lodInfo = Cordycep.ReadMemory<BO6XModelLodInfo>(xmodel.lodInfo);
-                BO6XModelSurfs xmodelSurfs = Cordycep.ReadMemory<BO6XModelSurfs>(lodInfo.modelSurfsStaging);
-                BO6XSurfaceShared shared = Cordycep.ReadMemory<BO6XSurfaceShared>(xmodelSurfs.shared);
+            stopwatch.Stop();
+            Log.Information("Read {count} static models in {time} ms.",
+                smodels.collectionsCount, stopwatch.ElapsedMilliseconds);
+        }
 
-                XModelMeshData[] xmodelMeshes = new XModelMeshData[0];
+        protected override void ProcessStaticModelsForCast(MapProcessingContext context)
+        {
+            BO6GfxWorldStaticModels smodels = context.GfxWorld.smodels;
 
-                if (models.TryGetValue(xmodel.hash, out var existingMeshes))
+            Log.Information("Reading {count} static models...", smodels.collectionsCount);
+            var stopwatch = Stopwatch.StartNew();
+
+            for (int i = 0; i < smodels.collectionsCount; i++)
+            {
+                ProcessStaticModelMesh(smodels, i, context);
+            }
+
+            stopwatch.Stop();
+            Log.Information("Read {count} static models in {time} ms.",
+                smodels.collectionsCount, stopwatch.ElapsedMilliseconds);
+        }
+
+        private unsafe void ProcessStaticModelJson(BO6GfxWorldStaticModels smodels, int index,
+            MapProcessingContext context)
+        {
+            BO6GfxStaticModelCollection collection =
+                Cordycep.ReadMemory<BO6GfxStaticModelCollection>(smodels.collections +
+                                                                 index * sizeof(BO6GfxStaticModelCollection));
+            BO6GfxStaticModel staticModel =
+                Cordycep.ReadMemory<BO6GfxStaticModel>(smodels.smodels +
+                                                       collection.smodelIndex * sizeof(BO6GfxStaticModel));
+            BO6GfxWorldTransientZone zone = context.TransientZones[collection.transientGfxWorldPlaced];
+
+            if (zone.hash == 0) return;
+
+            BO6XModel xmodel = Cordycep.ReadMemory<BO6XModel>(staticModel.xmodel);
+
+            string xmodelName = Cordycep.ReadString(xmodel.name);
+            string cleanedName = xmodelName.Trim();
+            if (cleanedName.Contains("/"))
+            {
+                cleanedName = xmodelName.Substring(xmodelName.LastIndexOf('/') + 1);
+            }
+
+            if (cleanedName.Contains("::"))
+            {
+                cleanedName = cleanedName.Substring(cleanedName.LastIndexOf("::") + 2);
+            }
+
+            int instanceId = (int)collection.firstInstance;
+            while (instanceId < collection.firstInstance + collection.instanceCount)
+            {
+                BO6GfxSModelInstanceData instanceData =
+                    Cordycep.ReadMemory<BO6GfxSModelInstanceData>((nint)smodels.instanceData +
+                                                                  instanceId *
+                                                                  sizeof(BO6GfxSModelInstanceData));
+
+                Vector3 translation = new Vector3(
+                    (float)instanceData.translation[0] * 0.000244140625f,
+                    (float)instanceData.translation[1] * 0.000244140625f,
+                    (float)instanceData.translation[2] * 0.000244140625f
+                );
+
+                Vector3 translationForComparison = new Vector3(translation.X, translation.Y, 0);
+
+                if (context.Range != 0 && Vector3.Distance(translationForComparison, context.StaticPropsOrigin) >
+                    context.Range)
                 {
-                    xmodelMeshes = existingMeshes;
+                    instanceId++;
+                    continue;
                 }
-                else
+
+                Quaternion rotation = new Quaternion(
+                    Math.Min(
+                        Math.Max((float)((float)instanceData.orientation[0] * 0.000030518044f) - 1.0f, -1.0f),
+                        1.0f),
+                    Math.Min(
+                        Math.Max((float)((float)instanceData.orientation[1] * 0.000030518044f) - 1.0f, -1.0f),
+                        1.0f),
+                    Math.Min(
+                        Math.Max((float)((float)instanceData.orientation[2] * 0.000030518044f) - 1.0f, -1.0f),
+                        1.0f),
+                    Math.Min(
+                        Math.Max((float)((float)instanceData.orientation[3] * 0.000030518044f) - 1.0f, -1.0f),
+                        1.0f)
+                );
+                rotation = Quaternion.Normalize(rotation);
+
+                float scale = (float)BitConverter.UInt16BitsToHalf(instanceData.halfFloatScale);
+
+                ModelJson modelJson = new ModelJson
                 {
-                    // See if we have data from memory
-                    if (shared.data != 0)
+                    Name = cleanedName,
+                    Location = new LocationData
                     {
-                        xmodelMeshes = ReadXModelMeshes(xmodel, shared.data, false);
-
-                        models[xmodel.hash] = xmodelMeshes;
-                    }
-                    // If not, Check XSub Cache
-                    else if (shared.data == 0 && XSub.CacheObjects.ContainsKey(shared.xpakKey))
+                        X = translation.X,
+                        Y = translation.Y,
+                        Z = translation.Z
+                    },
+                    Rotation = new RotationData
                     {
-                        byte[] buffer = XSub.ExtractXSubPackage(shared.xpakKey, shared.dataSize);
-                        nint sharedPtr = Marshal.AllocHGlobal((int)shared.dataSize);
-                        Marshal.Copy(buffer, 0, sharedPtr, (int)shared.dataSize);
-                        xmodelMeshes = ReadXModelMeshes(xmodel, (nint)sharedPtr, true);
-                        Marshal.FreeHGlobal(sharedPtr);
+                        X = rotation.X,
+                        Y = rotation.Y,
+                        Z = rotation.Z,
+                        W = rotation.W
+                    },
+                    Scale = scale
+                };
 
-                        models[xmodel.hash] = xmodelMeshes;
-                    }
-                    // If XSub wasn't successful, Check CASC Cache
-                    else if (shared.data == 0 && CASCPackage.Assets.ContainsKey(shared.xpakKey))
-                    {
-                        byte[] buffer = CASCPackage.ExtractXSubPackage(shared.xpakKey, shared.dataSize);
-                        nint sharedPtr = Marshal.AllocHGlobal((int)shared.dataSize);
-                        Marshal.Copy(buffer, 0, sharedPtr, (int)shared.dataSize);
-                        xmodelMeshes = ReadXModelMeshes(xmodel, (nint)sharedPtr, true);
-                        Marshal.FreeHGlobal(sharedPtr);
+                context.ModelsList.Add(modelJson);
 
-                        models[xmodel.hash] = xmodelMeshes;
-                    }
+                instanceId++;
+            }
+        }
 
-                    // Pre-register xmodel materials
-                    foreach (var xmodelMesh in xmodelMeshes)
-                    {
-                        mapGeoModel.AddNode(xmodelMesh.material);
-                    }
+        private unsafe void ProcessStaticModelMesh(BO6GfxWorldStaticModels smodels, int index,
+            MapProcessingContext context)
+        {
+            BO6GfxStaticModelCollection collection =
+                Cordycep.ReadMemory<BO6GfxStaticModelCollection>(smodels.collections +
+                                                                 index * sizeof(BO6GfxStaticModelCollection));
+            BO6GfxStaticModel staticModel =
+                Cordycep.ReadMemory<BO6GfxStaticModel>(smodels.smodels +
+                                                       collection.smodelIndex * sizeof(BO6GfxStaticModel));
+            BO6GfxWorldTransientZone zone = context.TransientZones[collection.transientGfxWorldPlaced];
+
+            if (zone.hash == 0) return;
+
+            BO6XModel xmodel = Cordycep.ReadMemory<BO6XModel>(staticModel.xmodel);
+
+            ulong xmodelHash = xmodel.hash & 0x0FFFFFFFFFFFFFFF;
+
+            BO6XModelLodInfo lodInfo = Cordycep.ReadMemory<BO6XModelLodInfo>(xmodel.lodInfo);
+            BO6XModelSurfs xmodelSurfs = Cordycep.ReadMemory<BO6XModelSurfs>(lodInfo.modelSurfsStaging);
+            BO6XSurfaceShared shared = Cordycep.ReadMemory<BO6XSurfaceShared>(xmodelSurfs.shared);
+
+            XModelMeshData[] xmodelMeshes = new XModelMeshData[0];
+
+            if (_models.ContainsKey(xmodelHash))
+            {
+                xmodelMeshes = _models[xmodelHash];
+            }
+            else
+            {
+                if (shared.data != 0)
+                {
+                    xmodelMeshes = ReadXModelMeshes(xmodel, shared.data, false);
+                }
+                else if (shared.data == 0 && XSub.CacheObjects.ContainsKey(shared.xpakKey))
+                {
+                    byte[] buffer = XSub.ExtractXSubPackage(shared.xpakKey, shared.dataSize);
+                    nint sharedPtr = Marshal.AllocHGlobal((int)shared.dataSize);
+                    Marshal.Copy(buffer, 0, sharedPtr, (int)shared.dataSize);
+                    xmodelMeshes = ReadXModelMeshes(xmodel, (nint)sharedPtr, true);
+                    Marshal.FreeHGlobal(sharedPtr);
+                }
+                else if (shared.data == 0 && CASCPackage.Assets.ContainsKey(shared.xpakKey))
+                {
+                    byte[] buffer = CASCPackage.ExtractXSubPackage(shared.xpakKey, shared.dataSize);
+                    nint sharedPtr = Marshal.AllocHGlobal((int)shared.dataSize);
+                    Marshal.Copy(buffer, 0, sharedPtr, (int)shared.dataSize);
+                    xmodelMeshes = ReadXModelMeshes(xmodel, (nint)sharedPtr, true);
+                    Marshal.FreeHGlobal(sharedPtr);
                 }
 
-                string xmodelName = Cordycep.ReadString(xmodel.name);
-                xmodelName = xmodelName.Replace("::", "_"); // TODO: Make strings safer
-                string propModelPath = @$"{Configuration.EXPORT_PATH}/{mapBaseName}/Props/{xmodelName}.cast";
-                CreateDirectoryIfNotExists(Path.GetDirectoryName(propModelPath));
+                _models[xmodelHash] = xmodelMeshes;
+            }
 
-                int lodIdx = -1;
+            string xmodelName = Cordycep.ReadString(xmodel.name);
+            int instanceId = (int)collection.firstInstance;
+            while (instanceId < collection.firstInstance + collection.instanceCount)
+            {
+                BO6GfxSModelInstanceData instanceData =
+                    Cordycep.ReadMemory<BO6GfxSModelInstanceData>((nint)smodels.instanceData +
+                                                                  instanceId *
+                                                                  sizeof(BO6GfxSModelInstanceData));
+
+                Vector3 translation = new Vector3(
+                    (float)instanceData.translation[0] * 0.000244140625f,
+                    (float)instanceData.translation[1] * 0.000244140625f,
+                    (float)instanceData.translation[2] * 0.000244140625f
+                );
+
+                Vector3 translationForComparison = new Vector3(translation.X, translation.Y, 0);
+
+                if (context.Range != 0 && Vector3.Distance(translationForComparison, context.StaticPropsOrigin) >
+                    context.Range)
+                {
+                    instanceId++;
+                    continue;
+                }
+
+                Quaternion rotation = new Quaternion(
+                    Math.Min(
+                        Math.Max((float)((float)instanceData.orientation[0] * 0.000030518044f) - 1.0f, -1.0f),
+                        1.0f),
+                    Math.Min(
+                        Math.Max((float)((float)instanceData.orientation[1] * 0.000030518044f) - 1.0f, -1.0f),
+                        1.0f),
+                    Math.Min(
+                        Math.Max((float)((float)instanceData.orientation[2] * 0.000030518044f) - 1.0f, -1.0f),
+                        1.0f),
+                    Math.Min(
+                        Math.Max((float)((float)instanceData.orientation[3] * 0.000030518044f) - 1.0f, -1.0f),
+                        1.0f)
+                );
+
+                float scale = (float)BitConverter.UInt16BitsToHalf(instanceData.halfFloatScale);
+
+                Matrix4x4 transformation = Matrix4x4.CreateScale(scale) *
+                                           Matrix4x4.CreateFromQuaternion(rotation) *
+                                           Matrix4x4.CreateTranslation(translation);
+
                 foreach (var xmodelMesh in xmodelMeshes)
                 {
-                    lodIdx++;
-
-                    ModelNode propModel = new ModelNode();
-                    SkeletonNode propSkeleton = new SkeletonNode();
-                    propModel.AddString("n", xmodelName);
-                    propModel.AddNode(propSkeleton);
-                    propModel.AddNode(xmodelMesh.material);
-
                     MeshNode meshNode = new MeshNode();
-                    meshNode.AddString("n", $"{xmodelName}_lod{lodIdx}");
                     meshNode.AddValue("m", xmodelMesh.material.Hash);
-                    CastArrayProperty<Vector3> positions = meshNode.AddArray<Vector3>("vp", new(xmodelMesh.positions.Count));
-                    CastArrayProperty<Vector3> normals = meshNode.AddArray<Vector3>("vn", new(xmodelMesh.normals.Count));
-                    CastArrayProperty<Vector2> uvs = meshNode.AddArray<Vector2>($"u0", xmodelMesh.uv); // TODO:
+                    meshNode.AddValue("ul", (uint)1);
+
+                    CastArrayProperty<Vector3> positions =
+                        meshNode.AddArray<Vector3>("vp", new(xmodelMesh.positions.Count));
+                    CastArrayProperty<Vector3> normals =
+                        meshNode.AddArray<Vector3>("vn", new(xmodelMesh.normals.Count));
+                    CastArrayProperty<Vector2> uvs = meshNode.AddArray<Vector2>($"u0", xmodelMesh.uv);
+
+                    if (xmodelMesh.secondUv.Count > 0)
+                    {
+                        meshNode.AddValue("ul", (uint)2);
+                        meshNode.AddArray<Vector2>($"u1", xmodelMesh.secondUv);
+                    }
+
+                    if (xmodelMesh.colorVertex.Count > 0)
+                    {
+                        meshNode.AddValue("cl", (uint)1);
+                        meshNode.AddArray<uint>($"c0", xmodelMesh.colorVertex);
+                    }
 
                     foreach (var position in xmodelMesh.positions)
                     {
-                        positions.Add(position);
+                        positions.Add(Vector3.Transform(position, transformation));
                     }
 
                     foreach (var normal in xmodelMesh.normals)
                     {
-                        normals.Add(normal);
+                        normals.Add(Vector3.TransformNormal(normal, transformation));
                     }
 
                     CastArrayProperty<ushort> f = meshNode.AddArray<ushort>("f", new(xmodelMesh.faces.Count));
                     foreach (var face in xmodelMesh.faces)
                     {
-                        f.Add(face.c); f.Add(face.b); f.Add(face.a);
+                        f.Add(face.c);
+                        f.Add(face.b);
+                        f.Add(face.a);
                     }
 
-                    propModel.AddNode(meshNode);
-                    CastNode propModelRoot = new CastNode(CastNodeIdentifier.Root);
-                    propModelRoot.AddNode(propModel);
-                    CastWriter.Save(propModelPath, propModelRoot);
+                    context.StaticModel.AddNode(meshNode);
+                    context.StaticModel.AddNode(xmodelMesh.material);
                 }
 
-                int instIdx = -1;
-                int instanceId = (int)collection.firstInstance;
-                while (instanceId < collection.firstInstance + collection.instanceCount)
-                {
-                    instIdx++;
-
-                    BO6GfxSModelInstanceData instanceData = Cordycep.ReadMemory<BO6GfxSModelInstanceData>(smodels.instanceData + instanceId * sizeof(BO6GfxSModelInstanceData));
-
-                    // Log.Information("Raw instance data: {instanceData}", BitConverter.ToString(Cordycep.ReadRawMemory((nint)smodels.instanceData + instanceId * sizeof(BO6GfxSModelInstanceData), 24)).Replace("-", ""));
-                    Vector3 translation = new Vector3(
-                        (float)instanceData.translation[0] * 0.000244140625f,
-                        (float)instanceData.translation[1] * 0.000244140625f,
-                        (float)instanceData.translation[2] * 0.000244140625f
-                    ) * 0.0254f;
-
-                    Quaternion rotation = new Quaternion(
-                        Math.Min(Math.Max((float)((float)instanceData.orientation[0] * 0.000030518044f) - 1.0f, -1.0f), 1.0f),
-                        Math.Min(Math.Max((float)((float)instanceData.orientation[1] * 0.000030518044f) - 1.0f, -1.0f), 1.0f),
-                        Math.Min(Math.Max((float)((float)instanceData.orientation[2] * 0.000030518044f) - 1.0f, -1.0f), 1.0f),
-                        Math.Min(Math.Max((float)((float)instanceData.orientation[3] * 0.000030518044f) - 1.0f, -1.0f), 1.0f)
-                    );
-
-                    float scale = (float)BitConverter.UInt16BitsToHalf(instanceData.halfFloatScale);
-
-                    // Log.Information("Translation: {translation}, Rotation: {rotation}, Scale: {scale}", translation, rotation, scale);
-
-                    FileNode modelFile = new FileNode();
-                    modelFile.Hash = xmodel.hash & 0x0FFFFFFFFFFFFFFF;
-                    modelFile.AddString("p", @$"{xmodelName}.cast");
-
-                    InstanceNode inst = new InstanceNode();
-                    inst.AddString("n", $"{xmodelName}_{instIdx}");
-                    inst.AddValue("rf", modelFile.Hash);
-                    inst.AddValue("p", translation);
-                    inst.AddValue("r", new Vector4(rotation.X, rotation.Y, rotation.Z, rotation.W));
-                    inst.AddValue("s", new Vector3(scale));
-                    inst.AddNode(modelFile);
-                    mapRoot.AddNode(inst);
-
-                    instanceId++;
-                }
+                instanceId++;
             }
-
-            string rootPath = @$"{Configuration.EXPORT_PATH}/{mapBaseName}/{mapBaseName}.cast";
-            CreateDirectoryIfNotExists(Path.GetDirectoryName(rootPath));
-            CastWriter.Save(rootPath, mapRoot);
         }
 
-        // private static unsafe List<TextureSemanticData> PopulateMaterial(BO6Material material)
-        // {
-        //     BO6GfxImage[] images = new BO6GfxImage[material.imageCount];
-        //
-        //     for (int i = 0; i < material.imageCount; i++)
-        //     {
-        //         nint imagePtr = Cordycep.ReadMemory<nint>(material.imageTable + i * 8);
-        //         BO6GfxImage image = Cordycep.ReadMemory<BO6GfxImage>(imagePtr);
-        //         images[i] = image;
-        //     }
-        //
-        //     for (int i = 0; i < material.textureCount; i++)
-        //     {
-        //         BO6MaterialTextureDef textureDef = Cordycep.ReadMemory<BO6MaterialTextureDef>(material.textureTable + i * sizeof(BO6MaterialTextureDef));
-        //         BO6GfxImage image = images[textureDef.imageIdx];
-        //
-        //         int uvMapIndex = 0;
-        //     }
-        //     return null;
-        // }
 
-        private static unsafe MeshData ReadMesh(BO6GfxSurface gfxSurface, BO6GfxUgbSurfData ugbSurfData, BO6Material material, BO6GfxWorldTransientZone zone)
+        private MeshData ReadMesh(BO6GfxSurface gfxSurface, BO6GfxUgbSurfData ugbSurfData, BO6Material material,
+            BO6GfxWorldTransientZone zone)
         {
             BO6GfxWorldDrawOffset worldDrawOffset = ugbSurfData.worldDrawOffset;
 
@@ -358,12 +442,19 @@ namespace DotnesktRemastered.Games
             nint packedIndices = zone.drawVerts.packedIndices + (nint)gfxSurface.packedIndicesOffset;
 
             CastArrayProperty<ushort> faceIndices = mesh.AddArray<ushort>("f", new(gfxSurface.triCount * 3));
+            ushort[] faceIndicesArray = new ushort[gfxSurface.triCount * 3];
 
-            for (int j = 0; j < gfxSurface.triCount; j++)
+            Parallel.For(0, gfxSurface.triCount, j =>
             {
-                ushort[] faces = FaceIndicesUnpacking.UnpackFaceIndicesEx(tableOffsetPtr, gfxSurface.packedIndicesTableCount, packedIndices, indicesPtr, (uint)j);
-                faceIndices.Add(faces[2]); faceIndices.Add(faces[1]); faceIndices.Add(faces[0]);
-            }
+                ushort[] faces = FaceIndicesUnpacking.UnpackFaceIndices(tableOffsetPtr,
+                    gfxSurface.packedIndicesTableCount, packedIndices, indicesPtr, (uint)j);
+                int index = j * 3;
+                faceIndicesArray[index] = faces[2];
+                faceIndicesArray[index + 1] = faces[1];
+                faceIndicesArray[index + 2] = faces[0];
+            });
+
+            faceIndices.AddRange(faceIndicesArray);
 
             return new MeshData()
             {
@@ -373,20 +464,24 @@ namespace DotnesktRemastered.Games
             };
         }
 
-        private static unsafe XModelMeshData[] ReadXModelMeshes(BO6XModel xmodel, nint shared, bool isLocal = false)
+        private unsafe XModelMeshData[] ReadXModelMeshes(BO6XModel xmodel, nint shared, bool isLocal = false)
         {
             BO6XModelLodInfo lodInfo = Cordycep.ReadMemory<BO6XModelLodInfo>(xmodel.lodInfo);
             BO6XModelSurfs xmodelSurfs = Cordycep.ReadMemory<BO6XModelSurfs>(lodInfo.modelSurfsStaging);
-            XModelMeshData[] meshes = new XModelMeshData[/*xmodelSurfs.numSurfs*/1]; // TODO: Only export the biggest lod level now
+            XModelMeshData[]
+                meshes = new XModelMeshData[ /*xmodelSurfs.numSurfs*/1]; // TODO: Only export the biggest lod level now
 
             // for (int i = 0; i < lodInfo.numSurfs; i++)
             {
                 int i = 0; // TODO: Only export the biggest lod level now
 
-                BO6XSurface surface = Cordycep.ReadMemory<BO6XSurface>((nint)xmodelSurfs.surfs + i * sizeof(BO6XSurface));
-                BO6Material material = Cordycep.ReadMemory<BO6Material>(Cordycep.ReadMemory<nint>(xmodel.materialHandles + i * 8));
+                BO6XSurface surface =
+                    Cordycep.ReadMemory<BO6XSurface>((nint)xmodelSurfs.surfs + i * sizeof(BO6XSurface));
+                BO6Material material =
+                    Cordycep.ReadMemory<BO6Material>(Cordycep.ReadMemory<nint>(xmodel.materialHandles + i * 8));
 
-                XModelMeshData mesh = new XModelMeshData() {
+                XModelMeshData mesh = new XModelMeshData()
+                {
                     positions = new(),
                     normals = new(),
                     uv = new(),
@@ -403,23 +498,31 @@ namespace DotnesktRemastered.Games
                 nint tangentFramePtr = (nint)(shared + surface.sharedTangentFrameDataOffset);
                 nint texCoordPtr = (nint)(shared + surface.sharedUVDataOffset);
 
-                float scale = surface.overrideScale != -1f ? surface.overrideScale : Math.Max(Math.Max(surface.surfBounds.halfSize.Y, surface.surfBounds.halfSize.X), surface.surfBounds.halfSize.Z);
+                float scale = surface.overrideScale != -1f
+                    ? surface.overrideScale
+                    : Math.Max(Math.Max(surface.surfBounds.halfSize.Y, surface.surfBounds.halfSize.X),
+                        surface.surfBounds.halfSize.Z);
                 Vector3 offset = surface.overrideScale != -1f ? Vector3.Zero : surface.surfBounds.midPoint;
                 for (int j = 0; j < surface.vertCount; j++)
                 {
                     ulong packedPosition = Cordycep.ReadMemory<ulong>(xyzPtr + j * 8, isLocal);
                     Vector3 position = new Vector3(
-                        (((((packedPosition >> 00) & 0x1FFFFF) * ((1.0f / 0x1FFFFF) * 2.0f)) - 1.0f) * scale) + offset.X,
-                        (((((packedPosition >> 21) & 0x1FFFFF) * ((1.0f / 0x1FFFFF) * 2.0f)) - 1.0f) * scale) + offset.Y,
-                        (((((packedPosition >> 42) & 0x1FFFFF) * ((1.0f / 0x1FFFFF) * 2.0f)) - 1.0f) * scale) + offset.Z);
+                        (((((packedPosition >> 00) & 0x1FFFFF) * ((1.0f / 0x1FFFFF) * 2.0f)) - 1.0f) * scale) +
+                        offset.X,
+                        (((((packedPosition >> 21) & 0x1FFFFF) * ((1.0f / 0x1FFFFF) * 2.0f)) - 1.0f) * scale) +
+                        offset.Y,
+                        (((((packedPosition >> 42) & 0x1FFFFF) * ((1.0f / 0x1FFFFF) * 2.0f)) - 1.0f) * scale) +
+                        offset.Z);
                     mesh.positions.Add(position * 0.0254f);
 
                     uint packedTangentFrame = Cordycep.ReadMemory<uint>(tangentFramePtr + j * 4, isLocal);
                     Vector3 normal = NormalUnpacking.UnpackCoDQTangent(packedTangentFrame);
                     mesh.normals.Add(normal);
 
-                    float uvu = ((float)BitConverter.UInt16BitsToHalf(Cordycep.ReadMemory<ushort>(texCoordPtr + j * 4, isLocal)));
-                    float uvv = ((float)BitConverter.UInt16BitsToHalf(Cordycep.ReadMemory<ushort>(texCoordPtr + j * 4 + 2, isLocal)));
+                    float uvu = ((float)BitConverter.UInt16BitsToHalf(
+                        Cordycep.ReadMemory<ushort>(texCoordPtr + j * 4, isLocal)));
+                    float uvv = ((float)BitConverter.UInt16BitsToHalf(
+                        Cordycep.ReadMemory<ushort>(texCoordPtr + j * 4 + 2, isLocal)));
                     mesh.uv.Add(new Vector2(uvu, uvv));
                 }
 
@@ -429,7 +532,8 @@ namespace DotnesktRemastered.Games
 
                 for (int j = 0; j < surface.triCount; j++)
                 {
-                    ushort[] faces = FaceIndicesUnpacking.UnpackFaceIndicesEx(tableOffsetPtr, surface.packedIndicesTableCount, packedIndices, indicesPtr, (uint)j, isLocal);
+                    ushort[] faces = FaceIndicesUnpacking.UnpackFaceIndicesEx(tableOffsetPtr,
+                        surface.packedIndicesTableCount, packedIndices, indicesPtr, (uint)j, isLocal);
                     mesh.faces.Add(new Face() { a = faces[0], b = faces[1], c = faces[2] });
                 }
 
@@ -438,6 +542,5 @@ namespace DotnesktRemastered.Games
 
             return meshes;
         }
-
     }
 }
