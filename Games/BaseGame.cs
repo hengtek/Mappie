@@ -164,11 +164,11 @@ namespace DotnesktRemastered.Games
                         $"{materialName}_images.txt");
 
                 StringBuilder semanticTxt = new StringBuilder();
-                semanticTxt.Append("# semantic, image");
+                semanticTxt.Append("semantic,image_name");
                 foreach (var texture in mesh.textures)
                 {
                     semanticTxt.AppendLine();
-                    semanticTxt.Append($"{texture.semantic}, {texture.texture}");
+                    semanticTxt.Append($"{texture.semantic},{texture.texture}");
 
                     if (!exportedBaseImages.Contains(texture.texture))
                     {
@@ -278,67 +278,6 @@ namespace DotnesktRemastered.Games
                 ctx => ProcessStaticModelsForCast(ctx),
                 ctx => CommonExport(ctx, true)
             );
-        }
-
-        private unsafe List<TextureSemanticData> PopulateMaterial(MW6Material material)
-        {
-            MW6GfxImage[] images = new MW6GfxImage[material.imageCount];
-
-            for (int i = 0; i < material.imageCount; i++)
-            {
-                nint imagePtr = Cordycep.ReadMemory<nint>(material.imageTable + i * 8);
-                MW6GfxImage image = Cordycep.ReadMemory<MW6GfxImage>(imagePtr);
-                images[i] = image;
-            }
-
-            List<TextureSemanticData> textures = new List<TextureSemanticData>();
-
-            for (int i = 0; i < material.textureCount; i++)
-            {
-                MW6MaterialTextureDef textureDef =
-                    Cordycep.ReadMemory<MW6MaterialTextureDef>(
-                        material.textureTable + i * sizeof(MW6MaterialTextureDef));
-                MW6GfxImage image = images[textureDef.imageIdx];
-
-                int uvMapIndex = 0;
-
-                ulong hash = image.hash & 0x0FFFFFFFFFFFFFFF;
-
-                if (hash == 0xa882744bc523875 ||
-                    hash == 0xc29eeff15212c37 ||
-                    hash == 0x8fd10a77ef7cceb ||
-                    hash == 0x29f08617872fbdd ||
-                    hash == 0xcd365ba04eb6b ||
-                    hash == 0xc2d1c3e952cb190 ||
-                    hash == 0x2ca20d05140bbf8 ||
-                    hash == 0xc979d3a4845195f ||
-                    hash == 0xcdfbff57d64fc0d ||
-                    hash == 0x8b3d69e4258c738 ||
-                    hash == 0x859d988746fc4e8 ||
-                    hash == 0xebe9c97e3c8c029) continue; //pretty sure its prob a null texture lol
-
-                string imageName = $"ximage_{hash:X}".ToLower();
-
-                //instead of using actual semantic value, we can guess them base on the texture index, hf
-
-                string textureSemantic;
-                if (!Enum.IsDefined(typeof(MW6TextureIdxTable), (int)textureDef.index))
-                {
-                    textureSemantic = $"unknown_texture_{textureDef.index}";
-                }
-                else
-                {
-                    textureSemantic = ((MW6TextureIdxTable)textureDef.index).ToString().ToLower();
-                }
-
-                textures.Add(new()
-                {
-                    semantic = textureSemantic,
-                    texture = imageName
-                });
-            }
-
-            return textures;
         }
     }
 }

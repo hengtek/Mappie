@@ -404,14 +404,15 @@ namespace DotnesktRemastered.Games
                 //instead of using actual semantic value, we can guess them base on the texture index, hf
 
                 string textureSemantic;
-                if (!Enum.IsDefined(typeof(MW6TextureIdxTable), (int)textureDef.index))
+                textureSemantic = $"unk_semantic_0x{textureDef.index:X}";
+                /*if (!Enum.IsDefined(typeof(MW6TextureIdxTable), (int)textureDef.index))
                 {
                     textureSemantic = $"unknown_texture_{textureDef.index}";
                 }
                 else
                 {
                     textureSemantic = ((MW6TextureIdxTable)textureDef.index).ToString().ToLower();
-                }
+                }*/
 
                 textures.Add(new()
                 {
