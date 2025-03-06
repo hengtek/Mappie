@@ -16,10 +16,15 @@ namespace DotnesktRemastered.Structures
     public interface IMaterial
     {
         public ulong hash { get; }
+        public byte textureCount{ get; }
+        public byte imageCount{ get; }
+        public nint textureTable{ get; }
+        public nint imageTable{ get; }
     }
 
     public interface IGfxImage
     {
+        public ulong hash { get; }
     }
 
     public interface IGfxWorldSurfaces
@@ -98,7 +103,7 @@ namespace DotnesktRemastered.Structures
         public nint lodInfo { get; }
     }
 
-    public interface IXModelLodInfo
+    public interface IXModelLod
     {
         public nint MeshPtr { get; }
     }

@@ -287,7 +287,7 @@ namespace DotnesktRemastered.Structures
     }
 
     [StructLayout(LayoutKind.Explicit, Size = 72)]
-    public struct MW6XModelLodInfo : IXModelLodInfo
+    public struct MW6XModelLod : IXModelLod
     {
         [FieldOffset(0)] public nint MeshPtr;
         [FieldOffset(8)] public nint SurfsPtr;
@@ -295,7 +295,7 @@ namespace DotnesktRemastered.Structures
         [FieldOffset(28)] public ushort numsurfs;
         [FieldOffset(30)] public ushort surfIndex;
 
-        nint IXModelLodInfo.MeshPtr => MeshPtr;
+        nint IXModelLod.MeshPtr => MeshPtr;
     }
 
     [StructLayout(LayoutKind.Explicit, Size = 80, Pack = 1)]

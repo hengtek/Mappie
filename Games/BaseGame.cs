@@ -38,7 +38,7 @@ namespace DotnesktRemastered.Games
         where TGfxSModelInstanceData : unmanaged, IGfxSModelInstanceData
         where TGfxWorldDrawOffset : unmanaged, IGfxWorldDrawOffset
         where TGfxWorldDrawVerts : unmanaged, IGfxWorldDrawVerts
-        where TXModelLodInfo : unmanaged, IXModelLodInfo
+        where TXModelLodInfo : unmanaged, IXModelLod
         where TXModelSurfs : unmanaged, IXModelSurfs
         where TXSurfaceShared : unmanaged, IXSurfaceShared
         where TXSurface : unmanaged, IXSurface

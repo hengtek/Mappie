@@ -6,7 +6,7 @@ namespace DotnesktRemastered.Games
     public class ModernWarfare6SP : BaseGame<MW6SPGfxWorld, MW6GfxWorldTransientZone, MW6GfxWorldSurfaces, MW6GfxSurface
         , MW6GfxUgbSurfData, MW6SPMaterial, MW6GfxWorldStaticModels, MW6GfxStaticModelCollection, MW6GfxStaticModel,
         MW6SPXModel,
-        MW6GfxSModelInstanceData, MW6GfxWorldDrawOffset, MW6GfxWorldDrawVerts, MW6XModelLodInfo, MW6XModelSurfs,
+        MW6GfxSModelInstanceData, MW6GfxWorldDrawOffset, MW6GfxWorldDrawVerts, MW6XModelLod, MW6XModelSurfs,
         MW6XSurfaceShared, MW6XSurface>
     {
         public ModernWarfare6SP()

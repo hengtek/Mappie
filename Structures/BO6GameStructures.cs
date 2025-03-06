@@ -329,7 +329,7 @@ namespace DotnesktRemastered.Structures
     };
 
     [StructLayout(LayoutKind.Explicit, Size = 72)]
-    public unsafe struct BO6XModelLodInfo:IXModelLodInfo
+    public unsafe struct BO6XModelLod:IXModelLod
     {
         [FieldOffset(0)] public nint MeshPtr;
         [FieldOffset(8)] public nint surfs;
@@ -337,7 +337,7 @@ namespace DotnesktRemastered.Structures
         [FieldOffset(28)] public ushort numSurfs;
         [FieldOffset(30)] public ushort surfIndex;
         
-        nint IXModelLodInfo.MeshPtr => MeshPtr;
+        nint IXModelLod.MeshPtr => MeshPtr;
     }
 
     [StructLayout(LayoutKind.Explicit, Size = 64, Pack = 1)]
