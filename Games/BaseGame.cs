@@ -184,15 +184,14 @@ namespace DotnesktRemastered.Games
 
         private unsafe void ProcessSurfaces(MapProcessingContext context)
         {
-            TWorldSurfaces surfaces = context.GfxWorld.surfaces;
-            context.Meshes.Capacity = (int)surfaces.count;
+            TWorldSurfaces gfxWorldSurfaces = context.GfxWorld.surfaces;
+            context.Meshes.Capacity = (int)gfxWorldSurfaces.count;
 
-            Log.Information("Reading {count} surfaces...", surfaces.count);
+            Log.Information("Reading {count} surfaces...", gfxWorldSurfaces.count);
             var stopwatch = Stopwatch.StartNew();
 
-            Parallel.For(0, surfaces.count, i =>
+            Parallel.For(0, gfxWorldSurfaces.count, i =>
             {
-                TWorldSurfaces gfxWorldSurfaces = context.GfxWorld.surfaces;
                 TGfxSurface gfxSurface = Cordycep.ReadMemory<TGfxSurface>((nint)(gfxWorldSurfaces.surfaces +
                     i * sizeof(TGfxSurface)));
                 TGfxUgbSurfData ugbSurfData = Cordycep.ReadMemory<TGfxUgbSurfData>(
@@ -218,7 +217,7 @@ namespace DotnesktRemastered.Games
             });
 
             stopwatch.Stop();
-            Log.Information("Read {count} surfaces in {time} ms.", surfaces.count, stopwatch.ElapsedMilliseconds);
+            Log.Information("Read {count} surfaces in {time} ms.", gfxWorldSurfaces.count, stopwatch.ElapsedMilliseconds);
         }
 
         private void ProcessStaticModelsForJson(MapProcessingContext context)

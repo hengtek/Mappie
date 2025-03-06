@@ -5,7 +5,7 @@ namespace DotnesktRemastered.Games
 {
     public class BlackOps6 : BaseGame<BO6GfxWorld, BO6GfxWorldTransientZone, BO6GfxWorldSurfaces, BO6GfxSurface,
         BO6GfxUgbSurfData, BO6Material, BO6GfxWorldStaticModels, BO6GfxStaticModelCollection, BO6GfxStaticModel,
-        BO6XModel, BO6GfxSModelInstanceData, BO6GfxWorldDrawOffset, BO6GfxWorldDrawVerts, BO6XModelLodInfo,
+        BO6XModel, BO6GfxSModelInstanceData, BO6GfxWorldDrawOffset, BO6GfxWorldDrawVerts, BO6XModelLod,
         BO6XModelSurfs, BO6XSurfaceShared, BO6XSurface>
     {
         public BlackOps6()
