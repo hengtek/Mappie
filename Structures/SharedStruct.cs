@@ -30,11 +30,14 @@ namespace Mappie.Structures
 
     public struct XModelMeshData
     {
+        public bool loaded;
+
         public List<Vector3> positions;
         public List<Vector3> normals;
         public List<Vector2> uv;
         public List<Vector2> secondUv;
         public List<uint> colorVertex;
+        public List<uint> secondColorVertex;
         public List<Face> faces;
 
         public MaterialNode material;

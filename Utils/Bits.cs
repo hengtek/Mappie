@@ -25,6 +25,22 @@ namespace Mappie.Utils
             return true;
         }
 
+        public static bool BitScanReverse32(uint value, out int index)
+        {
+            if (value == 0)
+            {
+                index = 0;
+                return false;
+            }
+
+            index = 31;
+            while ((value & (1U << index)) == 0)
+            {
+                index--;
+            }
+            return true;
+        }
+
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static uint RotateLeft(uint value, int offset)
         {

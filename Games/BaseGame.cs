@@ -391,6 +391,7 @@ namespace Mappie.Games
             TXSurfaceShared shared = Cordycep.ReadMemory<TXSurfaceShared>(xmodelSurfs.shared);
 
             XModelMeshData xmodelMesh = new XModelMeshData();
+            xmodelMesh.loaded = false;
 
             if (_models.ContainsKey(xmodelHash))
             {
@@ -407,6 +408,7 @@ namespace Mappie.Games
                 if (shared.data != 0)
                 {
                     xmodelMesh = ReadXModelMeshes(xmodel, shared.data, false);
+                    xmodelMesh.loaded = true;
                 }
                 else if (shared.data == 0 && XSub.CacheObjects.ContainsKey(pakKey))
                 {
@@ -415,6 +417,7 @@ namespace Mappie.Games
                     Marshal.Copy(buffer, 0, sharedPtr, (int)shared.dataSize);
                     xmodelMesh = ReadXModelMeshes(xmodel, (nint)sharedPtr, true);
                     Marshal.FreeHGlobal(sharedPtr);
+                    xmodelMesh.loaded = true;
                 }
                 else if (shared.data == 0 && CASCPackage.Assets.ContainsKey(pakKey))
                 {
@@ -423,9 +426,17 @@ namespace Mappie.Games
                     Marshal.Copy(buffer, 0, sharedPtr, (int)shared.dataSize);
                     xmodelMesh = ReadXModelMeshes(xmodel, (nint)sharedPtr, true);
                     Marshal.FreeHGlobal(sharedPtr);
+                    xmodelMesh.loaded = true;
                 }
+                if (xmodelMesh.loaded)
+                {
+                    _models[xmodelHash] = xmodelMesh;
+                }
+            }
 
-                _models[xmodelHash] = xmodelMesh;
+            if (!xmodelMesh.loaded)
+            {
+                return;
             }
 
             string xmodelName = Cordycep.ReadString(xmodel.name);
@@ -610,7 +621,7 @@ namespace Mappie.Games
 
             for (int j = 0; j < surface.triCount; j++)
             {
-                ushort[] faces = FaceIndicesUnpacking.UnpackFaceIndices(tableOffsetPtr,
+                ushort[] faces = UnpackFaceIndices(tableOffsetPtr,
                     surface.packedIndicesTableCount, packedIndices, indicesPtr, (uint)j, isLocal);
                 mesh.faces.Add(new Face() { a = faces[0], b = faces[1], c = faces[2] });
             }
@@ -682,10 +693,7 @@ namespace Mappie.Games
                 }
             }
 
-            //unpack da fucking faces 
-            //References: https://github.com/Scobalula/Greyhound/blob/master/src/WraithXCOD/WraithXCOD/CoDXModelMeshHelper.cpp#L37
-
-            nint tableOffsetPtr = zone.drawVerts.tableData + (nint)(gfxSurface.tableIndex * 40);
+            nint tableOffsetPtr = zone.drawVerts.tableData + (nint)(gfxSurface.tableIndex * 32);
             nint indicesPtr = zone.drawVerts.indices + (nint)(gfxSurface.baseIndex * 2);
             nint packedIndices = zone.drawVerts.packedIndices + (nint)gfxSurface.packedIndicesOffset;
 
@@ -694,7 +702,7 @@ namespace Mappie.Games
 
             Parallel.For(0, gfxSurface.triCount, j =>
             {
-                ushort[] faces = FaceIndicesUnpacking.UnpackFaceIndices(tableOffsetPtr,
+                ushort[] faces = UnpackFaceIndices(tableOffsetPtr,
                     gfxSurface.packedIndicesTableCount, packedIndices, indicesPtr, (uint)j);
                 int index = j * 3;
                 faceIndicesArray[index] = faces[2];
@@ -713,6 +721,7 @@ namespace Mappie.Games
         }
 
         protected abstract List<TextureSemanticData> PopulateMaterial(TMaterial material);
+        protected abstract ushort[] UnpackFaceIndices(nint tables, uint tableCount, nint packedIndices, nint indices, uint faceIndex, bool isLocal = false);
 
         private string EnsureOutputDirectory(string baseName)
         {
@@ -760,7 +769,7 @@ namespace Mappie.Games
         {
             CastNode root = new CastNode(CastNodeIdentifier.Root);
             root.AddNode(context.StaticModel);
-            CastWriter.Save(Path.Join(outputFolder, $"{context.BaseName}__props_mesh.cast"), root);
+            CastWriter.Save(Path.Join(outputFolder, $"{context.BaseName}_props_mesh.cast"), root);
 
             List<string> exportedPropsImages = new();
 

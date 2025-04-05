@@ -357,6 +357,8 @@ namespace Mappie.Structures
         uint IXSurface.packedIndicesOffset => packedIndicesOffset;
         uint IXSurface.colorOffset => colorOffset;
         uint IXSurface.secondUVOffset => secondUVOffset;
+        uint IXSurface.secondColorOffset => 0;
+
     }
 
     public enum MW6TextureIdxTable

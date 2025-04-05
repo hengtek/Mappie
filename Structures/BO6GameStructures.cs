@@ -5,6 +5,7 @@ using System.Numerics;
 using System.Runtime.InteropServices;
 using System.Text;
 using System.Threading.Tasks;
+using static Mappie.FileStorage.CascStorage.FileSystem.TVFSHandler;
 
 namespace Mappie.Structures
 {
@@ -64,8 +65,7 @@ namespace Mappie.Structures
         [FieldOffset(52)] public uint colorOffset;
         [FieldOffset(56)] public uint texCoordOffset;
 
-        [FieldOffset(60)] public uint
-            unkDataOffset; // Only btndSurf area has this value? (bufPtr = zone.drawVerts.posData + (nint)ugbSurfData.unkDataOffset; bufSize = 8 * vertexCount;)
+        [FieldOffset(60)] public uint unkDataOffset; // Only btndSurf area has this value? (bufPtr = zone.drawVerts.posData + (nint)ugbSurfData.unkDataOffset; bufSize = 8 * vertexCount;)
         // [FieldOffset(64)]
         // public uint accumulatedUnk2; //? this is sum of previous unk2
         // [FieldOffset(68)]
@@ -249,8 +249,8 @@ namespace Mappie.Structures
         [FieldOffset(8)] public nint baseName;
         [FieldOffset(216)] public BO6GfxWorldSurfaces surfaces;
         [FieldOffset(608)] public BO6GfxWorldStaticModels smodels;
-        [FieldOffset(27548)] public uint transientZoneCount;
-        [FieldOffset(27552)] public fixed ulong transientZones[0x600];
+        [FieldOffset(28548)] public uint transientZoneCount;
+        [FieldOffset(28552)] public fixed ulong transientZones[0x600];
 
         nint IGfxWorld<BO6GfxWorldSurfaces, BO6GfxWorldStaticModels>.baseName => baseName;
         uint IGfxWorld<BO6GfxWorldSurfaces, BO6GfxWorldStaticModels>.transientZoneCount => transientZoneCount;
@@ -273,15 +273,15 @@ namespace Mappie.Structures
         BO6GfxWorldStaticModels IGfxWorld<BO6GfxWorldSurfaces, BO6GfxWorldStaticModels>.smodels => smodels;
     }
 
-    [StructLayout(LayoutKind.Explicit, Size = 128)]
+    [StructLayout(LayoutKind.Explicit, Size = 136)]
     public unsafe struct BO6Material : IMaterial // TODO:
     {
         [FieldOffset(0)] public ulong hash;
-        [FieldOffset(24)] public byte textureCount;
-        [FieldOffset(26)] public byte layerCount;
-        [FieldOffset(27)] public byte imageCount;
-        [FieldOffset(40)] public nint textureTable;
-        [FieldOffset(48)] public nint imageTable;
+        [FieldOffset(28)] public byte textureCount;
+        [FieldOffset(32)] public byte layerCount;
+        [FieldOffset(33)] public byte imageCount;
+        [FieldOffset(56)] public nint textureTable;
+        [FieldOffset(64)] public nint imageTable;
         
         ulong IMaterial.hash => hash;
         byte IMaterial.textureCount => textureCount;
@@ -304,7 +304,6 @@ namespace Mappie.Structures
         [FieldOffset(8)] public nint name;
         [FieldOffset(16)] public ushort numSurfs;
         [FieldOffset(18)] public byte numLods;
-        [FieldOffset(104)] public nint xmodelPackedDataPtr;
         [FieldOffset(144)] public nint materialHandles;
         [FieldOffset(152)] public nint lodInfo;
         
@@ -313,20 +312,6 @@ namespace Mappie.Structures
         nint IXModel.materialHandles => materialHandles;
         nint IXModel.lodInfo => lodInfo;
     }
-
-    [StructLayout(LayoutKind.Explicit, Size = 144)]
-    public unsafe struct BO6XModelPackedData
-    {
-        [FieldOffset(0)] public byte NumBones;
-        [FieldOffset(1)] public ushort NumRootBones;
-        [FieldOffset(6)] public ushort UnkBoneCount;
-        [FieldOffset(80)] public nint ParentListPtr;
-        [FieldOffset(88)] public nint RotationsPtr;
-        [FieldOffset(96)] public nint TranslationsPtr;
-        [FieldOffset(104)] public nint PartClassificationPtr;
-        [FieldOffset(112)] public nint BaseMatriciesPtr;
-        [FieldOffset(120)] public nint BoneIDsPtr;
-    };
 
     [StructLayout(LayoutKind.Explicit, Size = 72)]
     public unsafe struct BO6XModelLod:IXModelLod
@@ -382,28 +367,30 @@ namespace Mappie.Structures
         [FieldOffset(28)] public uint packedIndicesTableCount;
         [FieldOffset(60)] public float overrideScale;
         [FieldOffset(64)] public fixed uint offsets[14];
-        [FieldOffset(64)] public uint sharedVertDataOffset;
-        [FieldOffset(68)] public uint sharedUVDataOffset;
-        [FieldOffset(72)] public uint sharedTangentFrameDataOffset;
-        [FieldOffset(76)] public uint sharedIndexDataOffset;
-        [FieldOffset(80)] public uint sharedPackedIndicesTableOffset;
-        [FieldOffset(84)] public uint sharedPackedIndicesOffset;
-        [FieldOffset(88)] public uint sharedColorDataOffset;
-        // [FieldOffset(92)] public uint sharedSecondUVDataOffset;
+        [FieldOffset(64)] public uint sharedVertDataOffset; //0
+        [FieldOffset(68)] public uint sharedUVDataOffset; // 1
+        [FieldOffset(72)] public uint sharedTangentFrameDataOffset; //2
+        [FieldOffset(76)] public uint sharedIndexDataOffset; //3 
+        [FieldOffset(80)] public uint sharedPackedIndicesTableOffset; //4
+        [FieldOffset(84)] public uint sharedPackedIndicesOffset; // 5
+        [FieldOffset(88)] public uint sharedColorDataOffset; // 6
+        [FieldOffset(92)] public uint sharedSecondColorDataOffset; //7
+        [FieldOffset(96)] public uint sharedSecondUVDataOffset; // 8
         [FieldOffset(120)] public nint shared;
         [FieldOffset(176)] public BO6Bounds surfBounds;
         
         uint IXSurface.packedIndicesTableCount => packedIndicesTableCount;
         uint IXSurface.vertCount => vertCount;
         uint IXSurface.triCount => triCount;
-        uint IXSurface.xyzOffset => 0;
-        uint IXSurface.texCoordOffset => 0;
-        uint IXSurface.tangentFrameOffset => 0;
-        uint IXSurface.indexDataOffset => 0;
-        uint IXSurface.packedIndiciesTableOffset => 0;
-        uint IXSurface.packedIndicesOffset => 0;
-        uint IXSurface.colorOffset => 0;
-        uint IXSurface.secondUVOffset => 0;
+        uint IXSurface.xyzOffset => sharedVertDataOffset;
+        uint IXSurface.texCoordOffset => sharedUVDataOffset;
+        uint IXSurface.tangentFrameOffset => sharedTangentFrameDataOffset;
+        uint IXSurface.indexDataOffset => sharedIndexDataOffset;
+        uint IXSurface.packedIndiciesTableOffset => sharedPackedIndicesTableOffset;
+        uint IXSurface.packedIndicesOffset => sharedPackedIndicesOffset;
+        uint IXSurface.colorOffset => sharedColorDataOffset;
+        uint IXSurface.secondColorOffset => sharedSecondColorDataOffset;
+        uint IXSurface.secondUVOffset => sharedSecondUVDataOffset;
     }
 
     [StructLayout(LayoutKind.Explicit, Size = 24)]

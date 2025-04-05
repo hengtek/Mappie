@@ -149,6 +149,7 @@ namespace Mappie.Structures
         public uint packedIndiciesTableOffset { get; }
         public uint packedIndicesOffset { get; }
         public uint colorOffset { get; }
+        public uint secondColorOffset { get; }
         public uint secondUVOffset { get; }
     }
 }
