@@ -1,6 +1,6 @@
 ﻿using System.Numerics;
 
-namespace DotnesktRemastered.Structures
+namespace Mappie.Structures
 {
     public interface IGfxWorld<out TGfxWorldSurfaces, out TGfxWorldStaticModels>
         where TGfxWorldSurfaces : unmanaged, IGfxWorldSurfaces

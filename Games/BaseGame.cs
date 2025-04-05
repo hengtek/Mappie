@@ -1,8 +1,8 @@
 ﻿using Cast.NET;
 using Cast.NET.Nodes;
-using DotnesktRemastered.FileStorage;
-using DotnesktRemastered.Structures;
-using DotnesktRemastered.Utils;
+using Mappie.FileStorage;
+using Mappie.Structures;
+using Mappie.Utils;
 using Serilog;
 using System.Diagnostics;
 using System.Numerics;
@@ -10,8 +10,10 @@ using System.Reflection;
 using System.Runtime.InteropServices;
 using System.Text;
 using Newtonsoft.Json;
+using System.Collections.Concurrent;
+using System.Xml.Linq;
 
-namespace DotnesktRemastered.Games
+namespace Mappie.Games
 {
     public abstract class BaseGame
     {
@@ -72,7 +74,6 @@ namespace DotnesktRemastered.Games
                 {
                     Log.Information("[{0}] Found map {1}, started dumping...", GameName, name);
                     DumpMap(asset.Header, gfxWorld, name, noProps, propsOrigin, range, onlyJson);
-                    Log.Information("[{0}] Dumped map {1}.", GameName, name);
                     found = true;
                 }
             });
@@ -144,16 +145,24 @@ namespace DotnesktRemastered.Games
             MapProcessingContext context, Action<MapProcessingContext> modelProcessor,
             Action<MapProcessingContext> exportHandler)
         {
-            InitializeBaseModel(context);
-            ReadTransientZones(context);
-            ProcessSurfaces(context);
-
-            if (!context.NoProps)
+            try
             {
-                modelProcessor(context);
-            }
+                InitializeBaseModel(context);
+                ReadTransientZones(context);
+                ProcessSurfaces(context);
 
-            exportHandler(context);
+                if (!context.NoProps)
+                {
+                    modelProcessor(context);
+                }
+
+                exportHandler(context);
+                Log.Information("[{0}] Dumped map {1}.", GameName, context.BaseName);
+            }
+            catch(Exception e)
+            {
+                Log.Error(e, "Error processing map {name}", context.BaseName);
+            }
         }
 
         private void InitializeBaseModel(MapProcessingContext context)
@@ -190,31 +199,45 @@ namespace DotnesktRemastered.Games
             Log.Information("Reading {count} surfaces...", gfxWorldSurfaces.count);
             var stopwatch = Stopwatch.StartNew();
 
+            var exceptions = new ConcurrentQueue<Exception>();
+
             Parallel.For(0, gfxWorldSurfaces.count, i =>
             {
-                TGfxSurface gfxSurface = Cordycep.ReadMemory<TGfxSurface>((nint)(gfxWorldSurfaces.surfaces +
+                try
+                {
+                    TGfxSurface gfxSurface = Cordycep.ReadMemory<TGfxSurface>((nint)(gfxWorldSurfaces.surfaces +
                     i * sizeof(TGfxSurface)));
-                TGfxUgbSurfData ugbSurfData = Cordycep.ReadMemory<TGfxUgbSurfData>(
-                    gfxWorldSurfaces.ugbSurfData +
-                    (nint)(gfxSurface.ugbSurfDataIndex * sizeof(TGfxUgbSurfData)));
-                TGfxWorldTransientZone zone = context.TransientZones[ugbSurfData.transientZoneIndex];
-                if (zone.hash == 0) return;
-                nint materialPtr =
-                    Cordycep.ReadMemory<nint>(gfxWorldSurfaces.materials + (nint)(gfxSurface.materialIndex * 8));
-                TMaterial material = Cordycep.ReadMemory<TMaterial>(materialPtr);
-                MeshData mesh = ReadMesh(gfxSurface, ugbSurfData, material, zone);
+                    TGfxUgbSurfData ugbSurfData = Cordycep.ReadMemory<TGfxUgbSurfData>(
+                        gfxWorldSurfaces.ugbSurfData +
+                        (nint)(gfxSurface.ugbSurfDataIndex * sizeof(TGfxUgbSurfData)));
+                    TGfxWorldTransientZone zone = context.TransientZones[ugbSurfData.transientZoneIndex];
+                    if (zone.hash == 0) return;
+                    nint materialPtr =
+                        Cordycep.ReadMemory<nint>(gfxWorldSurfaces.materials + (nint)(gfxSurface.materialIndex * 8));
+                    TMaterial material = Cordycep.ReadMemory<TMaterial>(materialPtr);
+                    MeshData mesh = ReadMesh(gfxSurface, ugbSurfData, material, zone);
 
-                lock (context.BaseMeshModel)
-                {
-                    context.BaseMeshModel.AddNode(mesh.mesh);
-                    context.BaseMeshModel.AddNode(mesh.material);
+                    lock (context.BaseMeshModel)
+                    {
+                        context.BaseMeshModel.AddNode(mesh.mesh);
+                        context.BaseMeshModel.AddNode(mesh.material);
+                    }
+
+                    lock (context.Meshes)
+                    {
+                        context.Meshes.Add(mesh);
+                    }
                 }
-
-                lock (context.Meshes)
+                catch (Exception e)
                 {
-                    context.Meshes.Add(mesh);
+                    exceptions.Enqueue(e);
                 }
             });
+
+            if (!exceptions.IsEmpty)
+            {
+                throw new AggregateException("Error processing surfaces.", exceptions.First());
+            }
 
             stopwatch.Stop();
             Log.Information("Read {count} surfaces in {time} ms.", gfxWorldSurfaces.count, stopwatch.ElapsedMilliseconds);

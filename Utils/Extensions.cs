@@ -2,7 +2,7 @@
 using System.Runtime.InteropServices;
 using System.Text;
 
-namespace DotnesktRemastered.Utils
+namespace Mappie.Utils
 {
     public static class BinaryReaderExtensions
     {

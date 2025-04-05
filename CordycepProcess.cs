@@ -4,7 +4,7 @@ using System.Runtime.InteropServices;
 using Windows.Win32;
 using Windows.Win32.Foundation;
 
-namespace DotnesktRemastered
+namespace Mappie
 {
 
     public struct XAsset64

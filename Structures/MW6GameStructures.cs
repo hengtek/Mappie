@@ -6,7 +6,7 @@ using System.Runtime.InteropServices;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace DotnesktRemastered.Structures
+namespace Mappie.Structures
 {
     [StructLayout(LayoutKind.Explicit, Size = 40)]
     public unsafe struct MW6GfxSurface : IGfxSurface

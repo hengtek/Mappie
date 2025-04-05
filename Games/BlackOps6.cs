@@ -1,7 +1,7 @@
-﻿using DotnesktRemastered.Structures;
+﻿using Mappie.Structures;
 using System.Numerics;
 
-namespace DotnesktRemastered.Games
+namespace Mappie.Games
 {
     public class BlackOps6 : BaseGame<BO6GfxWorld, BO6GfxWorldTransientZone, BO6GfxWorldSurfaces, BO6GfxSurface,
         BO6GfxUgbSurfData, BO6Material, BO6GfxWorldStaticModels, BO6GfxStaticModelCollection, BO6GfxStaticModel,
@@ -14,7 +14,6 @@ namespace DotnesktRemastered.Games
             GFXMAP_TRZONE_POOL_IDX = 0x4F;
             MeshPositionScale = 0.0254f;
         }
-
         protected override string GameName => "BlackOps6";
 
         protected override unsafe List<TextureSemanticData> PopulateMaterial(BO6Material material)

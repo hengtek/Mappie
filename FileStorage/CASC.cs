@@ -1,4 +1,4 @@
-﻿using DotnesktRemastered.Utils;
+﻿using Mappie.Utils;
 using PhilLibX;
 using PhilLibX.Compression;
 using Serilog;
@@ -6,7 +6,7 @@ using System.Diagnostics;
 using System.Runtime.InteropServices;
 using System.Text;
 
-namespace DotnesktRemastered.FileStorage
+namespace Mappie.FileStorage
 {
     public class CascStorage
     {

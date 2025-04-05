@@ -1,5 +1,5 @@
-﻿using DotnesktRemastered.FileStorage;
-using DotnesktRemastered.Games;
+﻿using Mappie.FileStorage;
+using Mappie.Games;
 using Serilog;
 using Serilog.Events;
 using System;
@@ -9,7 +9,7 @@ using System.Runtime.InteropServices;
 using System.Text;
 using static System.Runtime.InteropServices.JavaScript.JSType;
 
-namespace DotnesktRemastered
+namespace Mappie
 {
     internal class Program
     {

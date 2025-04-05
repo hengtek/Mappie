@@ -5,7 +5,7 @@ using System.Runtime.InteropServices;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace DotnesktRemastered.Utils
+namespace Mappie.Utils
 {
     public class NativeLib
     {

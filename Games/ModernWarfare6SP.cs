@@ -1,7 +1,7 @@
-﻿using DotnesktRemastered.Structures;
+﻿using Mappie.Structures;
 using System.Numerics;
 
-namespace DotnesktRemastered.Games
+namespace Mappie.Games
 {
     public class ModernWarfare6SP : BaseGame<MW6SPGfxWorld, MW6GfxWorldTransientZone, MW6GfxWorldSurfaces, MW6GfxSurface
         , MW6GfxUgbSurfData, MW6SPMaterial, MW6GfxWorldStaticModels, MW6GfxStaticModelCollection, MW6GfxStaticModel,
