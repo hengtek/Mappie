@@ -14,25 +14,27 @@ namespace DotnesktRemastered
     internal class Program
     {
         public static CordycepProcess Cordycep;
+        private static BaseGame GameInstance;
 
-        public delegate void DumpMapFunc(string name, bool noStaticProps = false, Vector3 staticPropsOrigin = new(), uint range = 0);
+        public delegate void DumpMapFunc(string name, bool noStaticProps = false, Vector3 staticPropsOrigin = new(),
+            uint range = 0, bool onlyJson = false);
+
         public delegate string[] GetMapListFunc();
 
-        public static DumpMapFunc DumpMap;
-        public static GetMapListFunc GetMapList;
-
-        static unsafe void Main(string[] args)
+        static void Main(string[] args)
         {
             //Logging
             if (File.Exists("DotnesktLog.txt"))
             {
                 File.Delete("DotnesktLog.txt");
             }
+
             Log.Logger = new LoggerConfiguration()
                 .WriteTo.Console()
                 .WriteTo.File(
                     "DotnesktLog.txt",
-                    outputTemplate: "[ {Timestamp:dd-MM-yyyy HH-mm-ss}    ] [{Level:u3}] {Message:lj}{NewLine}{Exception}",
+                    outputTemplate:
+                    "[ {Timestamp:dd-MM-yyyy HH-mm-ss}    ] [{Level:u3}] {Message:lj}{NewLine}{Exception}",
                     fileSizeLimitBytes: null,
                     rollOnFileSizeLimit: false,
                     shared: true,
@@ -47,6 +49,7 @@ namespace DotnesktRemastered
                 Console.ReadKey();
                 return;
             }
+
             Cordycep = new CordycepProcess(processes[0]);
 
             Cordycep.LoadState();
@@ -63,14 +66,12 @@ namespace DotnesktRemastered
                 case "YAMYAMOK":
                     CASCPackage.LoadFiles(Cordycep.GameDirectory);
                     XSub.LoadFiles(Cordycep.GameDirectory);
-                    DumpMap = Cordycep.IsSinglePlayer() ? ModernWarfare6SP.DumpMap : ModernWarfare6.DumpMap;
-                    GetMapList = Cordycep.IsSinglePlayer() ? ModernWarfare6SP.GetMapList : ModernWarfare6.GetMapList;
+                    GameInstance =Cordycep.IsSinglePlayer() ? new ModernWarfare6SP() : new ModernWarfare6();
                     break;
                 case "BLACKOP6":
                     CASCPackage.LoadFiles(Cordycep.GameDirectory);
                     XSub.LoadFiles(Cordycep.GameDirectory);
-                    DumpMap = BlackOps6.DumpMap;
-                    GetMapList = BlackOps6.GetMapList;
+                    GameInstance = new BlackOps6();
                     break;
                 default:
                     Log.Error("Game is not supported. :(");
@@ -96,26 +97,30 @@ namespace DotnesktRemastered
                         Log.Information("Commands: list, dump");
                         break;
                     case "list":
-                        string[] maps = GetMapList();
+                        string[] maps = GameInstance.GetMapList();
                         Log.Information("There are currently {0} loaded maps.", maps.Length);
                         foreach (string map in maps)
                         {
                             Log.Information(">> {map}", map);
                         }
+
                         break;
                     case "dump":
                         if (args.Length <= 0 || args[0] == "")
                         {
                             Log.Warning("Usage: dump <map_name>");
                             Log.Information("-nostaticprops                         : Skip static props");
-                            Log.Information("-staticpropsrange <x> <y> <range>  : Only exports static props in given area");
+                            Log.Information(
+                                "-staticpropsrange <x> <y> <range>  : Only exports static props in given area");
                             break;
                         }
+
                         string mapName = args[0];
                         int index = 1;
                         bool noStaticProps = false;
                         Vector3 staticPropsOrigin = Vector3.Zero;
                         uint range = 0;
+                        bool onlyJson = false;
                         while (index < args.Length)
                         {
                             string option = args[index];
@@ -129,13 +134,21 @@ namespace DotnesktRemastered
                                 {
                                     Log.Warning("Usage: dump <map_name>");
                                     Log.Information("-nostaticprops                         : Skip static props");
-                                    Log.Information("-staticpropsrange <x> <y> <range>  : Only exports static props in given area");
+                                    Log.Information(
+                                        "-staticpropsrange <x> <y> <range>  : Only exports static props in given area");
                                     break;
                                 }
-                                staticPropsOrigin = new Vector3(float.Parse(args[index + 1]), float.Parse(args[index + 2]), 0);
+
+                                staticPropsOrigin = new Vector3(float.Parse(args[index + 1]),
+                                    float.Parse(args[index + 2]), 0);
                                 range = uint.Parse(args[index + 3]);
                                 index += 3;
                             }
+                            else if (option == "-onlyjson")
+                            {
+                                onlyJson = true;
+                            }
+
                             index++;
                         }
 
@@ -144,7 +157,7 @@ namespace DotnesktRemastered
                         Log.Information(">> Static props origins: {0} {1}", staticPropsOrigin.X, staticPropsOrigin.Y);
                         Log.Information(">> Static props range: {0}", range);
 
-                        DumpMap(mapName, noStaticProps, staticPropsOrigin, range);
+                        GameInstance.DumpMap(mapName, noStaticProps, staticPropsOrigin, range, onlyJson);
                         break;
                     default:
                         Log.Warning("Unknown command. Enter 'help' for a list of commands.");
