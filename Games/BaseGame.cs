@@ -436,6 +436,7 @@ namespace Mappie.Games
 
             if (!xmodelMesh.loaded)
             {
+                Log.Error($"Failed to load xmodel {Cordycep.ReadString(xmodel.name)}. XSUB: {shared.xpakKey}");
                 return;
             }
 

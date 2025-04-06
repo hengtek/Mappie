@@ -14,7 +14,6 @@ namespace Mappie.Games
         {
             GFXMAP_POOL_IDX = 43;
             GFXMAP_TRZONE_POOL_IDX = 0x4F;
-            MeshPositionScale = 0.0254f;
         }
 
         protected override string GameName => "BlackOps6";
