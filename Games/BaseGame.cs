@@ -730,7 +730,7 @@ namespace Mappie.Games
             root.AddNode(context.BaseMeshModel);
             CastWriter.Save(Path.Join(outputFolder, $"{context.BaseName}_base_mesh.cast"), root);
 
-            List<string> exportedBaseImages = new();
+            StringBuilder imagesList = new StringBuilder();
 
             foreach (var mesh in context.Meshes)
             {
@@ -747,14 +747,13 @@ namespace Mappie.Games
                     semanticTxt.AppendLine();
                     semanticTxt.Append($"{texture.semantic},{texture.texture}");
 
-                    if (!exportedBaseImages.Contains(texture.texture))
-                    {
-                        exportedBaseImages.Add(texture.texture);
-                    }
+                    imagesList.Append($"{texture.texture} ,");
                 }
 
                 File.WriteAllText(materialPath, semanticTxt.ToString());
             }
+
+            File.WriteAllText(Path.Join(outputFolder, "base_mesh_images_list.txt"), imagesList.ToString());
         }
 
         private void ExportPropsMesh(MapProcessingContext context, string outputFolder)
@@ -763,7 +762,7 @@ namespace Mappie.Games
             root.AddNode(context.StaticModel);
             CastWriter.Save(Path.Join(outputFolder, $"{context.BaseName}_props_mesh.cast"), root);
 
-            List<string> exportedPropsImages = new();
+            StringBuilder imagesList = new StringBuilder();
 
             foreach (var xmodelMesh in _models.Values)
             {
@@ -777,14 +776,14 @@ namespace Mappie.Games
                     semanticTxt.AppendLine();
                     semanticTxt.Append($"{texture.semantic}, {texture.texture}");
 
-                    if (!exportedPropsImages.Contains(texture.texture))
-                    {
-                        exportedPropsImages.Add(texture.texture);
-                    }
+                    imagesList.Append($"{texture.texture} ,");
                 }
 
                 File.WriteAllText(materialPath, semanticTxt.ToString());
             }
+
+            File.WriteAllText(Path.Join(outputFolder, "static_props_images_list.txt"), imagesList.ToString());
+
         }
 
         private void ExportJson(MapProcessingContext context, string outputFolder)
