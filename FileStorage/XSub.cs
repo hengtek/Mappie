@@ -19,7 +19,7 @@ namespace Mappie.FileStorage
     {
         public static CordycepProcess Cordycep = Program.Cordycep;
 
-        public static string[] files { get; set; }
+        public static string[] files { get; set; } = [];
 
         public static Dictionary<ulong, PackageCacheObject> CacheObjects = new Dictionary<ulong, PackageCacheObject>();
 
@@ -101,9 +101,6 @@ namespace Mappie.FileStorage
             var XSUBFileName = files[(int)cacheObject.PackageFileIndex];
 
             BinaryReader reader = new BinaryReader(File.Open(XSUBFileName, FileMode.Open));
-
-            ulong dataRead = 0;
-            int totalSize = 0;
 
             byte[] tempBuffer = new byte[size > 0 ? size : 0x2400000];
 

@@ -64,12 +64,10 @@ namespace Mappie
             switch (gameId)
             {
                 case "YAMYAMOK":
-                    CASCPackage.LoadFiles(Cordycep.GameDirectory);
                     XSub.LoadFiles(Cordycep.GameDirectory);
                     GameInstance =Cordycep.IsSinglePlayer() ? new ModernWarfare6SP() : new ModernWarfare6();
                     break;
                 case "BLACKOP6":
-                    CASCPackage.LoadFiles(Cordycep.GameDirectory);
                     XSub.LoadFiles(Cordycep.GameDirectory);
                     GameInstance = new BlackOps6();
                     break;

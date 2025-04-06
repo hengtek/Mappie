@@ -419,15 +419,6 @@ namespace Mappie.Games
                     Marshal.FreeHGlobal(sharedPtr);
                     xmodelMesh.loaded = true;
                 }
-                else if (shared.data == 0 && CASCPackage.Assets.ContainsKey(pakKey))
-                {
-                    byte[] buffer = CASCPackage.ExtractXSubPackage(pakKey, shared.dataSize);
-                    nint sharedPtr = Marshal.AllocHGlobal((int)shared.dataSize);
-                    Marshal.Copy(buffer, 0, sharedPtr, (int)shared.dataSize);
-                    xmodelMesh = ReadXModelMeshes(xmodel, (nint)sharedPtr, true);
-                    Marshal.FreeHGlobal(sharedPtr);
-                    xmodelMesh.loaded = true;
-                }
                 if (xmodelMesh.loaded)
                 {
                     _models[xmodelHash] = xmodelMesh;

@@ -5,7 +5,6 @@ using System.Numerics;
 using System.Runtime.InteropServices;
 using System.Text;
 using System.Threading.Tasks;
-using static Mappie.FileStorage.CascStorage.FileSystem.TVFSHandler;
 
 namespace Mappie.Structures
 {
