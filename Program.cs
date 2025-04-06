@@ -107,9 +107,9 @@ namespace Mappie
                         if (args.Length <= 0 || args[0] == "")
                         {
                             Log.Warning("Usage: dump <map_name>");
-                            Log.Information("-nostaticprops                         : Skip static props");
-                            Log.Information(
-                                "-staticpropsrange <x> <y> <range>  : Only exports static props in given area");
+                            Log.Information("-nostaticprops                     : Skip static props");
+                            Log.Information("-staticpropsrange <x> <y> <range>  : Only exports static props in given area");4
+                            Log.Information("-onlyjson                          : Only export json files");
                             break;
                         }
 
@@ -131,8 +131,9 @@ namespace Mappie
                                 if (args.Length - index < 4)
                                 {
                                     Log.Warning("Usage: dump <map_name>");
-                                    Log.Information("-nostaticprops                         : Skip static props");
-                                    Log.Information("-staticpropsrange <x> <y> <range>      : Only exports static props in given area");
+                                    Log.Information("-nostaticprops                     : Skip static props");
+                                    Log.Information("-staticpropsrange <x> <y> <range>  : Only exports static props in given area");4
+                                    Log.Information("-onlyjson                          : Only export json files");
                                     break;
                                 }
 
