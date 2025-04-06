@@ -40,5 +40,11 @@
       <TargetPath>oo2core_8_win64.dll</TargetPath>
 		</ContentWithTargetPath>
 	</ItemGroup>
+  <ItemGroup>
+    <ContentWithTargetPath Include="Externals\CascLib.dll">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+      <TargetPath>CascLib.dll</TargetPath>
+		</ContentWithTargetPath>
+	</ItemGroup>
 
 </Project>
