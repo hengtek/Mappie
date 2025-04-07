@@ -730,7 +730,7 @@ namespace Mappie.Games
             root.AddNode(context.BaseMeshModel);
             CastWriter.Save(Path.Join(outputFolder, $"{context.BaseName}_base_mesh.cast"), root);
 
-            StringBuilder imagesList = new StringBuilder();
+            List<string> imagesList = new();
 
             foreach (var mesh in context.Meshes)
             {
@@ -741,19 +741,19 @@ namespace Mappie.Games
                         $"{materialName}_images.txt");
 
                 StringBuilder semanticTxt = new StringBuilder();
-                semanticTxt.Append("semantic,image_name");
+                semanticTxt.Append("# semantic,image_name");
                 foreach (var texture in mesh.textures)
                 {
                     semanticTxt.AppendLine();
-                    semanticTxt.Append($"{texture.semantic},{texture.texture}");
+                    semanticTxt.Append($"{texture.semantic}, {texture.texture}");
 
-                    imagesList.Append($"{texture.texture} ,");
+                    if(!imagesList.Contains(texture.texture)) imagesList.Add(texture.texture);
                 }
 
                 File.WriteAllText(materialPath, semanticTxt.ToString());
             }
 
-            File.WriteAllText(Path.Join(outputFolder, "base_mesh_images_list.txt"), imagesList.ToString());
+            File.WriteAllText(Path.Join(outputFolder, "base_mesh_images_list.txt"), string.Join(" ,", imagesList));
         }
 
         private void ExportPropsMesh(MapProcessingContext context, string outputFolder)
@@ -762,7 +762,7 @@ namespace Mappie.Games
             root.AddNode(context.StaticModel);
             CastWriter.Save(Path.Join(outputFolder, $"{context.BaseName}_props_mesh.cast"), root);
 
-            StringBuilder imagesList = new StringBuilder();
+            List<string> imagesList = new();
 
             foreach (var xmodelMesh in _models.Values)
             {
@@ -776,13 +776,13 @@ namespace Mappie.Games
                     semanticTxt.AppendLine();
                     semanticTxt.Append($"{texture.semantic}, {texture.texture}");
 
-                    imagesList.Append($"{texture.texture} ,");
+                    if (!imagesList.Contains(texture.texture)) imagesList.Add(texture.texture);
                 }
 
                 File.WriteAllText(materialPath, semanticTxt.ToString());
             }
 
-            File.WriteAllText(Path.Join(outputFolder, "static_props_images_list.txt"), imagesList.ToString());
+            File.WriteAllText(Path.Join(outputFolder, "static_props_images_list.txt"), string.Join(" ,", imagesList));
 
         }
 

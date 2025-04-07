@@ -42,11 +42,19 @@ namespace Mappie.Games
 
                 ulong hash = image.hash & 0x0FFFFFFFFFFFFFFF;
 
+                if (hash == 0xa882744bc523875 || hash == 0xc29eeff15212c37) continue;
+
                 string imageName = $"ximage_{hash:X}".ToLower();
 
                 string textureSemantic;
-
-                textureSemantic = $"unk_semantic_0x{textureDef.index:X}";
+                if (!Enum.IsDefined(typeof(BO6TextureIdxTable), (int)textureDef.index))
+                {
+                    textureSemantic = $"unknown_texture_{textureDef.index}";
+                }
+                else
+                {
+                    textureSemantic = ((BO6TextureIdxTable)textureDef.index).ToString().ToLower();
+                }
 
                 textures.Add(new()
                 {

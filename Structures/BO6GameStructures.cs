@@ -414,6 +414,38 @@ namespace Mappie.Structures
         [FieldOffset(128)] public nint transientInfoPtr;
     }
 
-    // Note:
-    // StTerrain: "samplePoints"
+    public enum BO6TextureIdxTable
+    {
+        DIFFUSE_MAP = 87,
+        NOG_MAP = 88,
+        EMISSIVE_MAP = 89,
+        OPACITY_MAP = 90,
+        REVEAL_MAP = 91,
+        // 92 - Unknown
+        TRANSMISSION_MAP = 93,
+
+        DIFFUSE_MAP_2 = 100,
+        NOG_MAP_2 = 101,
+        EMISSIVE_MAP_2 = 102,
+        OPACITY_MAP_2 = 103,
+        REVEAL_MAP_2 = 104,
+        // 105 - Unknown
+        TRANSMISSION_MAP_2 = 106,
+
+        DIFFUSE_MAP_3 = 113,
+        NOG_MAP_3 = 114,
+        EMISSIVE_MAP_3 = 115,
+        OPACITY_MAP_3 = 116,
+        REVEAL_MAP_3 = 117,
+        // 118 - Unknown
+        TRANSMISSION_MAP_3 = 119,
+
+        DIFFUSE_MAP_4 = 126,
+        NOG_MAP_4 = 127,
+        EMISSIVE_MAP_4 = 128,
+        OPACITY_MAP_4 = 129,
+        REVEAL_MAP_4 = 130,
+        // 131 - Unknown
+        TRANSMISSION_MAP_4 = 132,
+    }
 }
