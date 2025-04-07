@@ -731,11 +731,14 @@ namespace Mappie.Games
             CastWriter.Save(Path.Join(outputFolder, $"{context.BaseName}_base_mesh.cast"), root);
 
             List<string> imagesList = new();
+            List<string> materialList = new();
 
             foreach (var mesh in context.Meshes)
             {
                 if (mesh.mesh == null) continue;
                 string materialName = mesh.material.Name;
+                if (materialList.Contains(materialName)) continue;
+                materialList.Add(materialName);
                 string materialPath =
                     Path.Join(outputFolder,
                         $"{materialName}_images.txt");
@@ -754,6 +757,7 @@ namespace Mappie.Games
             }
 
             File.WriteAllText(Path.Join(outputFolder, "base_mesh_images_list.txt"), string.Join(" ,", imagesList));
+            File.WriteAllText(Path.Join(outputFolder, "base_mesh_materials_list.txt"), string.Join(" ,", materialList));
         }
 
         private void ExportPropsMesh(MapProcessingContext context, string outputFolder)
@@ -763,10 +767,13 @@ namespace Mappie.Games
             CastWriter.Save(Path.Join(outputFolder, $"{context.BaseName}_props_mesh.cast"), root);
 
             List<string> imagesList = new();
+            List<string> materialList = new();
 
             foreach (var xmodelMesh in _models.Values)
             {
                 string materialName = xmodelMesh.material.Name;
+                if (materialList.Contains(materialName)) continue;
+                materialList.Add(materialName);
                 string materialPath = Path.Join(outputFolder, $"{materialName}_images.txt");
 
                 StringBuilder semanticTxt = new StringBuilder();
@@ -783,7 +790,7 @@ namespace Mappie.Games
             }
 
             File.WriteAllText(Path.Join(outputFolder, "static_props_images_list.txt"), string.Join(" ,", imagesList));
-
+            File.WriteAllText(Path.Join(outputFolder, "static_props_materials_list.txt"), string.Join(" ,", materialList));
         }
 
         private void ExportJson(MapProcessingContext context, string outputFolder)

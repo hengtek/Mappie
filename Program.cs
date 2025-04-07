@@ -65,13 +65,11 @@ namespace Mappie
             {
                 case "YAMYAMOK":
                     XSub.LoadFiles(Cordycep.GameDirectory);
-                    GameInstance =Cordycep.IsSinglePlayer() ? new ModernWarfare6SP() : new ModernWarfare6();
+                    GameInstance = Cordycep.IsSinglePlayer() ? new ModernWarfare6SP() : new ModernWarfare6();
                     break;
                 case "BLACKOP6":
                     XSub.LoadFiles(Cordycep.GameDirectory);
                     GameInstance = new BlackOps6();
-
-                    File.WriteAllBytes(@"D:\test", XSub.ExtractXSubPackage(0x18c58538ac17ae86, 131072));
                     break;
                 default:
                     Log.Error("Game is not supported. :(");
