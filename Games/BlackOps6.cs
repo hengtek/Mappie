@@ -79,11 +79,15 @@ namespace Mappie.Games
             return surface.overrideScale != -1f ? Vector3.Zero : surface.surfBounds.midPoint;
         }
 
+        protected override int GetPackedIndiciesTableSize()
+        {
+            return 32;
+        }
         protected override ushort[] UnpackFaceIndices(nint tables, uint tableCount, nint packedIndices, nint indices, uint faceIndex, bool isLocal = false)
         {
             for (int i = 0; i < tableCount; i++)
             {
-                nint tablePtr = tables + (i * 32);
+                nint tablePtr = tables + (i * GetPackedIndiciesTableSize());
                 byte count = (byte)(Cordycep.ReadMemory<byte>(tablePtr + 19, isLocal) + 1);
                 byte flag = Cordycep.ReadMemory<byte>(tablePtr + 28, isLocal);
 

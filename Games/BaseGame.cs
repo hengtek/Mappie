@@ -393,18 +393,18 @@ namespace Mappie.Games
             XModelMeshData xmodelMesh = new XModelMeshData();
             xmodelMesh.loaded = false;
 
+            ulong pakKey = xmodelSurfs.xpakKey;
+            if (pakKey == 0)
+            {
+                pakKey = shared.xpakKey;
+            }
+
             if (_models.ContainsKey(xmodelHash))
             {
                 xmodelMesh = _models[xmodelHash];
             }
             else
             {
-                ulong pakKey = xmodelSurfs.xpakKey;
-                if (pakKey == 0)
-                {
-                    pakKey = shared.xpakKey;
-                }
-
                 if (shared.data != 0)
                 {
                     xmodelMesh = ReadXModelMeshes(xmodel, shared.data, false);
@@ -427,7 +427,7 @@ namespace Mappie.Games
 
             if (!xmodelMesh.loaded)
             {
-                Log.Error($"Failed to load xmodel {Cordycep.ReadString(xmodel.name)}. XSUB: {shared.xpakKey}");
+                Log.Error($"Failed to load xmodel {Cordycep.ReadString(xmodel.name)}. XSUB: {pakKey}");
                 return;
             }
 
@@ -685,7 +685,7 @@ namespace Mappie.Games
                 }
             }
 
-            nint tableOffsetPtr = zone.drawVerts.tableData + (nint)(gfxSurface.tableIndex * 32);
+            nint tableOffsetPtr = zone.drawVerts.tableData + (nint)(gfxSurface.tableIndex * GetPackedIndiciesTableSize());
             nint indicesPtr = zone.drawVerts.indices + (nint)(gfxSurface.baseIndex * 2);
             nint packedIndices = zone.drawVerts.packedIndices + (nint)gfxSurface.packedIndicesOffset;
 
@@ -711,6 +711,8 @@ namespace Mappie.Games
                 textures = PopulateMaterial(material)
             };
         }
+
+        protected abstract int GetPackedIndiciesTableSize();
 
         protected abstract List<TextureSemanticData> PopulateMaterial(TMaterial material);
         protected abstract ushort[] UnpackFaceIndices(nint tables, uint tableCount, nint packedIndices, nint indices, uint faceIndex, bool isLocal = false);
