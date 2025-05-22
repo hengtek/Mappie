@@ -279,8 +279,8 @@ namespace Mappie.Structures
         [FieldOffset(28)] public byte textureCount;
         [FieldOffset(32)] public byte layerCount;
         [FieldOffset(33)] public byte imageCount;
-        [FieldOffset(56)] public nint textureTable;
-        [FieldOffset(64)] public nint imageTable;
+        [FieldOffset(48)] public nint textureTable;
+        [FieldOffset(56)] public nint imageTable;
         
         ulong IMaterial.hash => hash;
         byte IMaterial.textureCount => textureCount;
