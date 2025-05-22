@@ -168,9 +168,9 @@ namespace Mappie.Structures
 
         // [FieldOffset(80)]
         // public nint surfaces;
-        [FieldOffset(104)] public nint smodels;
-        [FieldOffset(120)] public nint collections;
-        [FieldOffset(200)] public nint instanceData;
+        [FieldOffset(112)] public nint smodels;
+        [FieldOffset(128)] public nint collections;
+        [FieldOffset(208)] public nint instanceData;
         uint IGfxWorldStaticModels.collectionsCount => collectionsCount;
         nint IGfxWorldStaticModels.collections => collections;
         nint IGfxWorldStaticModels.smodels => smodels;
@@ -248,8 +248,8 @@ namespace Mappie.Structures
         [FieldOffset(8)] public nint baseName;
         [FieldOffset(216)] public BO6GfxWorldSurfaces surfaces;
         [FieldOffset(608)] public BO6GfxWorldStaticModels smodels;
-        [FieldOffset(28548)] public uint transientZoneCount;
-        [FieldOffset(28552)] public fixed ulong transientZones[0x600];
+        [FieldOffset(27708)] public uint transientZoneCount;
+        [FieldOffset(27712)] public fixed ulong transientZones[0x600];
 
         nint IGfxWorld<BO6GfxWorldSurfaces, BO6GfxWorldStaticModels>.baseName => baseName;
         uint IGfxWorld<BO6GfxWorldSurfaces, BO6GfxWorldStaticModels>.transientZoneCount => transientZoneCount;
